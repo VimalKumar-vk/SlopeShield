@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic>=2,<3
+pydantic-settings
+joblib
+scikit-learn
+numpy
+pandas
