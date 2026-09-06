@@ -38,6 +38,14 @@ function Dashboard() {
     );
   }
 
+  if (!overview) {
+    return (
+      <div className="page-container">
+        No dashboard data available.
+      </div>
+    );
+  }
+
   const riskScore = overview.average_risk_score;
 
   const riskLevel =
@@ -74,4 +82,73 @@ function Dashboard() {
       description: `Across ${overview.total_locations} monitored locations`,
       icon: "🚨",
     },
-  ]};
+  ];
+
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <p className="page-eyebrow">
+            SLOPESHIELD COMMAND CENTER
+          </p>
+
+          <h1>Risk Intelligence Dashboard</h1>
+
+          <p className="page-subtitle">
+            Real-time AI-based landslide monitoring for North East India.
+          </p>
+        </div>
+
+        <div className="live-status">
+          <span className="live-dot"></span>
+          LIVE MONITORING
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        {stats.map((stat) => (
+          <div className="stat-card" key={stat.title}>
+            <div className="stat-icon">
+              {stat.icon}
+            </div>
+
+            <p>{stat.title}</p>
+
+            <h2>{stat.value}</h2>
+
+            <span>{stat.description}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="dashboard-card risk-overview">
+        <div className="card-header">
+          <div>
+            <h2>Regional Risk Overview</h2>
+            <p>AI-generated risk assessment</p>
+          </div>
+
+          <span
+            className={`risk-badge ${riskLevel.toLowerCase()}`}
+          >
+            {riskLevel.toUpperCase()}
+          </span>
+        </div>
+
+        <div className="risk-visual">
+          <div className="risk-circle">
+            <div className="risk-score">
+              {riskScore}
+            </div>
+
+            <div className="risk-label">
+              Risk Score
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Dashboard;
