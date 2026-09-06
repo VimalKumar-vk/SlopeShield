@@ -1,18 +1,25 @@
-from pydantic import BaseModel, ConfigDict
-from datetime import datetime
+from pydantic import BaseModel
 
-class AnalyticsBase(BaseModel):
-    pass
 
-class AnalyticsCreate(AnalyticsBase):
-    pass
+class AnalyticsOverview(BaseModel):
+    total_locations: int
+    high_risk_locations: int
+    critical_locations: int
+    active_alerts: int
+    average_risk_score: float
 
-class AnalyticsUpdate(AnalyticsBase):
-    pass
 
-class Analytics(AnalyticsBase):
-    id: int
-    created_at: datetime
-    updated_at: datetime
+class RiskDistribution(BaseModel):
+    low: int
+    moderate: int
+    high: int
+    critical: int
 
-    model_config = ConfigDict(from_attributes=True)
+
+class RiskTrendPoint(BaseModel):
+    date: str
+    average_risk_score: float
+
+
+class RiskTrends(BaseModel):
+    trends: list[RiskTrendPoint]
