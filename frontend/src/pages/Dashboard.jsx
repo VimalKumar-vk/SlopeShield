@@ -74,4 +74,4 @@ function Dashboard() {
       description: `Across ${overview.total_locations} monitored locations`,
       icon: "🚨",
     },
-  ];
+  ]};
