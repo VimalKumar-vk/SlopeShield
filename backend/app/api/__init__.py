@@ -9,14 +9,17 @@ from app.api.routes import (
     locations,
     risk,
     simulation,
+    weather,
 )
 
 
 api_router = APIRouter()
+
 api_router.include_router(
     environment_router,
     tags=["Environmental Readings"],
 )
+
 api_router.include_router(
     health.router,
     tags=["Health"],
@@ -45,4 +48,9 @@ api_router.include_router(
 api_router.include_router(
     simulation.router,
     tags=["Simulation"],
+)
+
+api_router.include_router(
+    weather.router,
+    tags=["Weather"],
 )
