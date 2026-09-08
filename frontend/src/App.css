@@ -427,6 +427,12 @@ input {
 }
 
 
+/* Sidebar open ho to hamburger hide */
+.dashboard-layout:has(.sidebar.sidebar-open) .menu-toggle {
+  display: none;
+}
+
+
 /* =========================================
    HEADER RIGHT
 ========================================= */
@@ -1071,10 +1077,11 @@ input[type="range"] {
 
   .sidebar.sidebar-open {
     width: 280px;
-
+    
     transform:
       translateX(0);
   }
+
 
   .sidebar.sidebar-closed {
     width: 280px;
