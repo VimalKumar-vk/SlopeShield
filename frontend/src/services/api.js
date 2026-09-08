@@ -39,4 +39,11 @@ export const api = {
 
   getEnvironmentalReadings: () =>
     request("/readings"),
+
+  // Live real-world weather data
+  getLiveEnvironmentData: (locationId) =>
+    request(`/readings/${locationId}/live`),
+
+  getLiveRiskData: (locationId) =>
+    request(`/readings/${locationId}/live-risk`),
 };

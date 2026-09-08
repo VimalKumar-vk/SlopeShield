@@ -119,3 +119,73 @@ def calculate_risk(location: Location, db: Session):
     db.refresh(assessment)
 
     return assessment
+
+def calculate_landslide_risk(
+    rainfall: float,
+    precipitation: float,
+    humidity: float,
+    wind_speed: float,
+):
+    """
+    Basic landslide risk scoring engine.
+
+    Returns:
+        risk_score: 0-100
+        risk_level: Low / Moderate / High / Critical
+    """
+
+    score = 0
+
+    # Rainfall contribution
+    if rainfall >= 20:
+        score += 40
+    elif rainfall >= 10:
+        score += 30
+    elif rainfall >= 5:
+        score += 20
+    elif rainfall > 0:
+        score += 10
+
+    # Precipitation contribution
+    if precipitation >= 20:
+        score += 25
+    elif precipitation >= 10:
+        score += 18
+    elif precipitation >= 5:
+        score += 10
+    elif precipitation > 0:
+        score += 5
+
+    # Humidity contribution
+    if humidity >= 90:
+        score += 20
+    elif humidity >= 75:
+        score += 15
+    elif humidity >= 60:
+        score += 8
+
+    # Wind contribution
+    if wind_speed >= 50:
+        score += 15
+    elif wind_speed >= 30:
+        score += 10
+    elif wind_speed >= 15:
+        score += 5
+
+    # Ensure score stays between 0 and 100
+    score = min(score, 100)
+
+    # Risk classification
+    if score >= 75:
+        level = "Critical"
+    elif score >= 50:
+        level = "High"
+    elif score >= 25:
+        level = "Moderate"
+    else:
+        level = "Low"
+
+    return {
+        "risk_score": score,
+        "risk_level": level,
+    }

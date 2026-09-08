@@ -772,9 +772,8 @@ input {
 .dashboard-grid {
   display: grid;
 
-  grid-template-columns:
-    minmax(0, 2fr)
-    minmax(320px, 1fr);
+   grid-template-columns:
+    repeat(2, minmax(0, 1fr));
 
   gap: 24px;
 
@@ -1071,6 +1070,210 @@ input[type="range"] {
 
 
 /* =========================================
+   LIVE WEATHER
+========================================= */
+
+.live-weather-card {
+  padding: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #182235,
+      #121a29
+    );
+
+  border:
+    1px solid
+    #2a3850;
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 14px 35px
+    rgba(0, 0, 0, 0.15);
+}
+
+.live-weather-card h2 {
+  margin:
+    0
+    0
+    8px;
+
+  color: #ffffff;
+}
+
+.live-weather-card h3 {
+  margin:
+    0
+    0
+    20px;
+
+  color: #60a5fa;
+}
+
+.live-weather-card p {
+  padding:
+    12px
+    0;
+
+  margin: 0;
+
+  color: #cbd5e1;
+
+  border-bottom:
+    1px solid
+    #263247;
+}
+
+.live-weather-card small {
+  display: block;
+
+  margin-top: 18px;
+
+  color: #64748b;
+}
+
+
+/* =========================================
+   LIVE AI RISK
+========================================= */
+
+.live-risk-card {
+  padding: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #182235,
+      #121a29
+    );
+
+  border:
+    1px solid
+    #2a3850;
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 14px 35px
+    rgba(0, 0, 0, 0.15);
+}
+
+.live-risk-card .card-header h2 {
+  margin: 0;
+
+  color: #ffffff;
+}
+
+.live-risk-card .card-header p {
+  margin:
+    6px
+    0
+    0;
+
+  color: #94a3b8;
+}
+
+.live-risk-content {
+  display: flex;
+
+  align-items: center;
+
+  gap: 30px;
+}
+
+.live-risk-score {
+  width: 160px;
+  height: 160px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  border:
+    7px solid
+    #3b82f6;
+
+  border-radius: 50%;
+
+  background:
+    rgba(37, 99, 235, 0.08);
+}
+
+.live-risk-score h1 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 48px;
+}
+
+.live-risk-score span {
+  margin-top: 5px;
+
+  color: #94a3b8;
+
+  font-size: 13px;
+}
+
+.live-risk-environment {
+  flex: 1;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 12px;
+}
+
+.live-risk-environment div {
+  padding: 14px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+
+  background:
+    #111827;
+
+  border:
+    1px solid
+    #263247;
+
+  border-radius: 10px;
+}
+
+.live-risk-environment span {
+  color: #94a3b8;
+
+  font-size: 13px;
+}
+
+.live-risk-environment strong {
+  color: #ffffff;
+
+  font-size: 18px;
+}
+
+.live-risk-card small {
+  display: block;
+
+  margin-top: 20px;
+
+  color: #64748b;
+}
+
+
+/* =========================================
    RESPONSIVE
 ========================================= */
 
@@ -1184,4 +1387,18 @@ input[type="range"] {
     width: 40px;
     height: 40px;
   }
+  .live-risk-content {
+  flex-direction: column;
+}
+
+.live-risk-environment {
+  width: 100%;
+
+  grid-template-columns: 1fr;
+}
+
+.live-risk-score {
+  width: 140px;
+  height: 140px;
+}
 }
