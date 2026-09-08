@@ -84,6 +84,33 @@ input {
   transform: translateX(-100%);
 }
 
+.sidebar-close {
+  position: relative;
+  top: 15px;
+  right: 15px;
+
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #334155;
+  border-radius: 8px;
+
+  background: #1e293b;
+  color: white;
+
+  font-size: 20px;
+  cursor: pointer;
+
+  z-index: 10;
+}
+
+.sidebar-close:hover {
+  background: #2563eb;
+}
 
 /* =========================================
    SIDEBAR BRAND
@@ -1089,6 +1116,7 @@ input[type="range"] {
     transform:
       translateX(-100%);
   }
+
 
   .top-header {
     padding:

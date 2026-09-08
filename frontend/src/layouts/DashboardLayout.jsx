@@ -11,7 +11,10 @@ function DashboardLayout({ children }) {
 
   return (
     <div className="dashboard-layout">
-      <Sidebar isOpen={sidebarOpen} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <div className="main-area">
         <Header
