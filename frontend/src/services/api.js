@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://slopeshield-backend.onrender.com";
+const API_BASE_URL = "https://slopeshield-backend.onrender.com/api";
 
 async function request(endpoint) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`);
