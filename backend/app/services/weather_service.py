@@ -7,7 +7,22 @@ from app.database.session import SessionLocal
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 
+# =========================================================
+# 1. GET WEATHER DATA USING LATITUDE + LONGITUDE
+# =========================================================
+
 def get_weather_data(latitude: float, longitude: float):
+    """
+    Fetch weather and environmental data
+    using latitude and longitude.
+    """
+
+    if not (-90 <= latitude <= 90):
+        raise ValueError("Invalid latitude")
+
+    if not (-180 <= longitude <= 180):
+        raise ValueError("Invalid longitude")
+
     params = {
         "latitude": latitude,
         "longitude": longitude,
@@ -16,6 +31,7 @@ def get_weather_data(latitude: float, longitude: float):
             "temperature_2m,"
             "relative_humidity_2m,"
             "rain,"
+            "precipitation,"
             "soil_moisture_0_to_7cm"
         ),
 
@@ -32,7 +48,7 @@ def get_weather_data(latitude: float, longitude: float):
     response = httpx.get(
         OPEN_METEO_URL,
         params=params,
-        timeout=10.0,
+        timeout=15.0,
     )
 
     response.raise_for_status()
@@ -40,44 +56,223 @@ def get_weather_data(latitude: float, longitude: float):
     return response.json()
 
 
+# =========================================================
+# 2. GET WEATHER DATA DIRECTLY BY COORDINATES
+# =========================================================
+
+def get_weather_data_by_coordinates(
+    latitude: float,
+    longitude: float,
+):
+    """
+    Fetch live environmental data directly
+    from latitude and longitude.
+
+    This function does NOT require a database location ID.
+    """
+
+    weather_data = get_weather_data(
+        latitude,
+        longitude,
+    )
+
+    hourly = weather_data.get("hourly", {})
+
+    precipitation = hourly.get(
+        "precipitation",
+        [],
+    )
+
+    soil_moisture_values = hourly.get(
+        "soil_moisture_0_to_7cm",
+        [],
+    )
+
+    # -----------------------------------------------------
+    # Rainfall - last 24 hours
+    # -----------------------------------------------------
+
+    rainfall_24h = sum(
+        value or 0
+        for value in precipitation[-24:]
+    )
+
+    # -----------------------------------------------------
+    # Rainfall - last 72 hours
+    # -----------------------------------------------------
+
+    rainfall_72h = sum(
+        value or 0
+        for value in precipitation[-72:]
+    )
+
+    # -----------------------------------------------------
+    # Latest soil moisture
+    # -----------------------------------------------------
+
+    soil_moisture = 0
+
+    if soil_moisture_values:
+
+        latest_soil = soil_moisture_values[-1]
+
+        if latest_soil is not None:
+            soil_moisture = latest_soil * 100
+
+    # -----------------------------------------------------
+    # Current weather
+    # -----------------------------------------------------
+
+    current = weather_data.get(
+        "current",
+        {},
+    )
+
+    temperature = current.get(
+        "temperature_2m"
+    )
+
+    humidity = current.get(
+        "relative_humidity_2m"
+    )
+
+    current_rain = current.get(
+        "rain"
+    )
+
+    current_precipitation = current.get(
+        "precipitation"
+    )
+
+    # -----------------------------------------------------
+    # Return clean data
+    # -----------------------------------------------------
+
+    return {
+        "latitude": latitude,
+        "longitude": longitude,
+
+        "temperature": temperature,
+        "humidity": humidity,
+
+        "rain": current_rain,
+        "precipitation": current_precipitation,
+
+        "rainfall_24h": round(
+            rainfall_24h,
+            2,
+        ),
+
+        "rainfall_72h": round(
+            rainfall_72h,
+            2,
+        ),
+
+        "soil_moisture": round(
+            soil_moisture,
+            2,
+        ),
+    }
+
+
+# =========================================================
+# 3. CALCULATE RAINFALL
+# =========================================================
+
 def calculate_rainfall(hourly_data):
-    precipitation = hourly_data["precipitation"]
+
+    precipitation = hourly_data.get(
+        "precipitation",
+        [],
+    )
 
     # Last 24 hourly values
-    rainfall_24h = sum(precipitation[-24:])
+    rainfall_24h = sum(
+        value or 0
+        for value in precipitation[-24:]
+    )
 
     # Last 72 hourly values
-    rainfall_72h = sum(precipitation[-72:])
+    rainfall_72h = sum(
+        value or 0
+        for value in precipitation[-72:]
+    )
 
     return {
-        "rainfall_24h": round(rainfall_24h, 2),
-        "rainfall_72h": round(rainfall_72h, 2),
+        "rainfall_24h": round(
+            rainfall_24h,
+            2,
+        ),
+
+        "rainfall_72h": round(
+            rainfall_72h,
+            2,
+        ),
     }
 
+
+# =========================================================
+# 4. EXTRACT ENVIRONMENTAL DATA
+# =========================================================
 
 def extract_environmental_data(weather_data):
-    hourly = weather_data["hourly"]
 
-    rainfall = calculate_rainfall(hourly)
+    hourly = weather_data.get(
+        "hourly",
+        {},
+    )
 
-    soil_moisture = hourly["soil_moisture_0_to_7cm"][-1]
+    rainfall = calculate_rainfall(
+        hourly
+    )
+
+    soil_moisture_values = hourly.get(
+        "soil_moisture_0_to_7cm",
+        [],
+    )
+
+    soil_moisture = 0
+
+    if soil_moisture_values:
+
+        latest_soil = soil_moisture_values[-1]
+
+        if latest_soil is not None:
+            soil_moisture = latest_soil * 100
 
     return {
-        "rainfall_24h": rainfall["rainfall_24h"],
-        "rainfall_72h": rainfall["rainfall_72h"],
+        "rainfall_24h": rainfall[
+            "rainfall_24h"
+        ],
 
-        # Convert 0–1 fraction into percentage
-        "soil_moisture": round(soil_moisture * 100, 2),
+        "rainfall_72h": rainfall[
+            "rainfall_72h"
+        ],
+
+        "soil_moisture": round(
+            soil_moisture,
+            2,
+        ),
     }
 
 
-def collect_weather_for_location(location_id: int):
+# =========================================================
+# 5. COLLECT WEATHER FOR DATABASE LOCATION
+# =========================================================
+
+def collect_weather_for_location(
+    location_id: int,
+):
+
     db = SessionLocal()
 
     try:
+
         location = (
             db.query(Location)
-            .filter(Location.id == location_id)
+            .filter(
+                Location.id == location_id
+            )
             .first()
         )
 
@@ -86,48 +281,91 @@ def collect_weather_for_location(location_id: int):
                 f"Location {location_id} not found"
             )
 
-        # Get live weather from Open-Meteo
+        # -------------------------------------------------
+        # Get live weather
+        # -------------------------------------------------
+
         weather_data = get_weather_data(
             location.latitude,
             location.longitude,
         )
 
-        # Extract rainfall and soil moisture
-        environmental = extract_environmental_data(
-            weather_data
+        # -------------------------------------------------
+        # Extract environmental data
+        # -------------------------------------------------
+
+        environmental = (
+            extract_environmental_data(
+                weather_data
+            )
         )
 
-        # Open-Meteo currently does not provide vegetation index
+        # Open-Meteo currently does not
+        # provide vegetation index here.
+
         vegetation_index = None
 
-        # Create database reading
+        # -------------------------------------------------
+        # Save reading into database
+        # -------------------------------------------------
+
         reading = EnvironmentalReading(
             location_id=location.id,
-            rainfall_24h=environmental["rainfall_24h"],
-            rainfall_72h=environmental["rainfall_72h"],
-            soil_moisture=environmental["soil_moisture"],
+
+            rainfall_24h=environmental[
+                "rainfall_24h"
+            ],
+
+            rainfall_72h=environmental[
+                "rainfall_72h"
+            ],
+
+            soil_moisture=environmental[
+                "soil_moisture"
+            ],
+
             vegetation_index=vegetation_index,
         )
 
         db.add(reading)
+
         db.commit()
+
         db.refresh(reading)
 
-        print("Weather data saved to database:")
-        print({
-            "id": reading.id,
-            "location_id": reading.location_id,
-            "rainfall_24h": reading.rainfall_24h,
-            "rainfall_72h": reading.rainfall_72h,
-            "soil_moisture": reading.soil_moisture,
-            "vegetation_index": reading.vegetation_index,
-        })
+        print(
+            "Weather data saved to database:"
+        )
+
+        print(
+            {
+                "id": reading.id,
+
+                "location_id":
+                    reading.location_id,
+
+                "rainfall_24h":
+                    reading.rainfall_24h,
+
+                "rainfall_72h":
+                    reading.rainfall_72h,
+
+                "soil_moisture":
+                    reading.soil_moisture,
+
+                "vegetation_index":
+                    reading.vegetation_index,
+            }
+        )
 
         return reading
 
     except Exception:
+
         db.rollback()
+
         raise
 
     finally:
+
         db.close()

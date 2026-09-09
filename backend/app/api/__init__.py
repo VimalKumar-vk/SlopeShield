@@ -10,6 +10,7 @@ from app.api.routes import (
     risk,
     simulation,
     weather,
+    geocoding,
 )
 
 
@@ -53,4 +54,9 @@ api_router.include_router(
 api_router.include_router(
     weather.router,
     tags=["Weather"],
+)
+
+api_router.include_router(
+    geocoding.router,
+    tags=["Geocoding"],
 )
