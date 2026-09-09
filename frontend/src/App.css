@@ -454,9 +454,9 @@ input {
 }
 
 
-/* Sidebar open ho to hamburger hide */
-.dashboard-layout:has(.sidebar.sidebar-open) .menu-toggle {
-  display: none;
+/* Hamburger button should always remain visible */
+.menu-toggle {
+  display: flex;
 }
 
 
