@@ -64,7 +64,7 @@ class EnvironmentalReading(Base):
     rainfall_24h = Column(Float, nullable=False)
     rainfall_72h = Column(Float, nullable=False)
     soil_moisture = Column(Float, nullable=False)
-    vegetation_index = Column(Float, nullable=False)
+    vegetation_index = Column(Float, nullable=True)
 
     location = relationship(
         "Location",
