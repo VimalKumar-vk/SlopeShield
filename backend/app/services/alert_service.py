@@ -17,12 +17,12 @@ def create_alert(
     db: Session,
 ):
     """
-    Automatically create an alert from risk assessment.
+    Automatically create an alert from a risk assessment.
 
-    LOW       < 40   -> No alert
-    MODERATE  40-69  -> No alert
-    HIGH      70-89  -> HIGH alert
-    SEVERE    90-100 -> SEVERE alert
+    Risk:
+        < 70  -> No alert
+        70-89 -> HIGH
+        90+   -> SEVERE
     """
 
     risk_score = float(
@@ -34,7 +34,6 @@ def create_alert(
     # -----------------------------------------------------
 
     if risk_score < 70:
-
         return None
 
     # -----------------------------------------------------
@@ -62,56 +61,32 @@ def create_alert(
         )
 
     # -----------------------------------------------------
-    # PREVENT DUPLICATE ACTIVE ALERT
+    # CHECK DUPLICATE ACTIVE ALERT
     # -----------------------------------------------------
-    #
-    # Same location + active alert should not create
-    # unlimited duplicate alerts.
-    #
 
     existing_alert = (
         db.query(AlertModel)
         .filter(
             AlertModel.location_id == location.id,
-
+            AlertModel.risk_assessment_id
+            == risk_assessment.id,
             AlertModel.status == "ACTIVE",
-
-            AlertModel.severity == severity,
-        )
-        .order_by(
-            AlertModel.created_at.desc()
         )
         .first()
     )
 
     if existing_alert:
-
-        # Update message to latest risk
-
-        existing_alert.message = message
-
-        db.commit()
-
-        db.refresh(existing_alert)
-
         return existing_alert
 
     # -----------------------------------------------------
-    # CREATE NEW ALERT
+    # CREATE ALERT
     # -----------------------------------------------------
 
     alert = AlertModel(
-
         location_id=location.id,
-
-        risk_assessment_id=(
-            risk_assessment.id
-        ),
-
+        risk_assessment_id=risk_assessment.id,
         message=message,
-
         severity=severity,
-
         status="ACTIVE",
     )
 
@@ -190,7 +165,6 @@ def acknowledge_alert(
     )
 
     if alert is None:
-
         return None
 
     alert.status = "ACKNOWLEDGED"
@@ -217,7 +191,6 @@ def resolve_alert(
     )
 
     if alert is None:
-
         return None
 
     alert.status = "RESOLVED"
