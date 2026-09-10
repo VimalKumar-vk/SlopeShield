@@ -3,7 +3,7 @@ import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 
 function DashboardLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   function toggleSidebar() {
     setSidebarOpen((previousState) => !previousState);
@@ -11,7 +11,10 @@ function DashboardLayout({ children }) {
 
   return (
     <div className="dashboard-layout">
-      <Sidebar isOpen={sidebarOpen} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <div className="main-area">
         <Header

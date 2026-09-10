@@ -1,47 +1,22 @@
 import { NavLink } from "react-router-dom";
 
-function Sidebar({ isOpen }) {
+function Sidebar({ isOpen, onClose }) {
   const navigation = [
-    {
-      name: "Dashboard",
-      path: "/",
-      icon: "▦",
-    },
-    {
-      name: "Risk Map",
-      path: "/risk-map",
-      icon: "◉",
-    },
-    {
-      name: "Alerts",
-      path: "/alerts",
-      icon: "⚠",
-    },
-    {
-      name: "Analytics",
-      path: "/analytics",
-      icon: "◔",
-    },
-    {
-      name: "Locations",
-      path: "/locations",
-      icon: "⌖",
-    },
-    {
-      name: "Simulation",
-      path: "/simulation",
-      icon: "◌",
-    },
+    { name: "Dashboard", path: "/", icon: "▦" },
+    { name: "Risk Map", path: "/risk-map", icon: "◉" },
+    { name: "Alerts", path: "/alerts", icon: "⚠" },
+    { name: "Analytics", path: "/analytics", icon: "◔" },
+    { name: "Locations", path: "/locations", icon: "⌖" },
+    { name: "Simulation", path: "/simulation", icon: "◌" },
   ];
 
   return (
     <aside
       className={`sidebar ${
-        isOpen
-          ? "sidebar-open"
-          : "sidebar-closed"
+        isOpen ? "sidebar-open" : "sidebar-closed"
       }`}
     >
+
       <div className="sidebar-brand">
         <div className="sidebar-logo">▲</div>
 
@@ -49,23 +24,24 @@ function Sidebar({ isOpen }) {
           <h1>SlopeShield</h1>
           <span>LANDSLIDE INTELLIGENCE</span>
         </div>
+        <button
+        className="sidebar-close"
+        onClick={onClose}
+        aria-label="Close sidebar"
+        >
+        ✕
+        </button>
       </div>
 
       <nav className="sidebar-navigation">
-        <p className="navigation-label">
-          MONITORING
-        </p>
+        <p className="navigation-label">MONITORING</p>
 
         {navigation.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `nav-item ${
-                isActive
-                  ? "active"
-                  : ""
-              }`
+              `nav-item ${isActive ? "active" : ""}`
             }
             end={item.path === "/"}
           >

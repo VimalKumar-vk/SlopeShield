@@ -23,10 +23,11 @@ def get_weather_data(latitude: float, longitude: float):
     if not (-180 <= longitude <= 180):
         raise ValueError("Invalid longitude")
 
+
     params = {
         "latitude": latitude,
         "longitude": longitude,
-
+      
         "current": (
             "temperature_2m,"
             "relative_humidity_2m,"

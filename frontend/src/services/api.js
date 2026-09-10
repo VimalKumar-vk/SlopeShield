@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+const API_BASE_URL = "https://slopeshield-backend.onrender.com/api";
 
 async function request(endpoint, options = {}) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
@@ -170,4 +170,10 @@ predictRiskByCoordinates: (latitude, longitude) =>
 
   getHealth: () =>
     request("/health"),
+  // Live real-world weather data
+  getLiveEnvironmentData: (locationId) =>
+    request(`/readings/${locationId}/live`),
+
+  getLiveRiskData: (locationId) =>
+    request(`/readings/${locationId}/live-risk`),
 };

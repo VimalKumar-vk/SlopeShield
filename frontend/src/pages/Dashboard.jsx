@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
+import LiveWeather from "../components/LiveWeather";
+import LiveRisk from "../components/LiveRisk";
 
 function Dashboard() {
   const [overview, setOverview] = useState(null);
@@ -146,6 +148,11 @@ function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="dashboard-grid">
+        <LiveWeather locationId={1} />
+
+        <LiveRisk locationId={1} />
       </div>
     </div>
   );
