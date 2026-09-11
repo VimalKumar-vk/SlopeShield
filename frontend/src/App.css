@@ -2752,7 +2752,7 @@ body {
       0
       auto;
   }
-
+   }
 }
 
 
@@ -2805,4 +2805,18 @@ body {
   width: 140px;
   height: 140px;
 }
+}
+
+
+/* Sidebar toggle - applies to all screen sizes */
+.dashboard-layout .sidebar.sidebar-open {
+  transform: translateX(0);
+}
+
+.dashboard-layout .sidebar.sidebar-closed {
+  transform: translateX(-100%);
+}
+
+.dashboard-layout .sidebar {
+  transition: transform 0.3s ease;
 }
