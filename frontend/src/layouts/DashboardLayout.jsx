@@ -12,7 +12,10 @@ function DashboardLayout({ children }) {
   return (
     <div className="dashboard-layout">
       {/* Left Navigation */}
-      <Sidebar isOpen={sidebarOpen} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main Application Area */}
       <div className="main-area">
