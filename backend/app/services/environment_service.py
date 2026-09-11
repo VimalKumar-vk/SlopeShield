@@ -69,10 +69,23 @@ def create_reading(reading_data, db: Session):
 
 
 def update_reading(reading_id: int, reading_data, db: Session):
+
     reading = get_reading(reading_id, db)
 
     if not reading:
         return None
+
+    location = (
+        db.query(Location)
+        .filter(Location.id == reading_data.location_id)
+        .first()
+    )
+
+    if not location:
+        raise HTTPException(
+            status_code=404,
+            detail="Location not found",
+        )
 
     reading.location_id = reading_data.location_id
     reading.timestamp = reading_data.timestamp
@@ -85,7 +98,6 @@ def update_reading(reading_id: int, reading_data, db: Session):
     db.refresh(reading)
 
     return reading
-
 
 def delete_reading(reading_id: int, db: Session):
     reading = get_reading(reading_id, db)

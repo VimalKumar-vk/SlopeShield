@@ -61,6 +61,7 @@ function LiveWeather({ locationId = 1 }) {
       <h3>{weather.location}</h3>
 
       <p>
+
         🌧 Rainfall (24h): {weather.rainfall_24h ?? "--"} mm
       </p>
 
@@ -77,8 +78,27 @@ function LiveWeather({ locationId = 1 }) {
         {weather.vegetation_index ?? "--"}
       </p>
 
+        🌡 Temperature: {weather.temperature ?? "--"} °C
+      </p>
+
+      <p>
+        💧 Humidity: {weather.humidity ?? "--"} %
+      </p>
+
+      <p>
+        🌧 Rain: {weather.rain ?? "--"} mm
+      </p>
+
+      <p>
+        ☔ Precipitation: {weather.precipitation ?? "--"} mm
+      </p>
+
+      <p>
+        💨 Wind Speed: {weather.wind_speed ?? "--"} km/h
+      </p>
+
       <small>
-        Source: Open-Meteo + Sentinel-2 NDVI
+        Source: {weather.source || Open-Meteo + Sentinel-2 NDVI}
       </small>
     </div>
   );

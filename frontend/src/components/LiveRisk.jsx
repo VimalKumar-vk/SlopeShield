@@ -6,37 +6,32 @@ function LiveRisk({ locationId = 1 }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    let cancelled = false;
+let cancelled = false;
 
-    async function loadLiveRisk() {
-      try {
-        setError(null);
+async function loadLiveRisk() {
+  try {
+    const data = await api.getLiveRiskData(locationId);
 
-        const location = await api.getLocation(locationId);
-
-        if (!location) {
-          throw new Error("Location not found");
-        }
-
-        const data = await api.predictRiskByCoordinates(
-          location.latitude,
-          location.longitude
-        );
-
-        if (!cancelled) {
-          setRiskData(data);
-        }
-      } catch (err) {
-        console.error("Failed to load live risk:", err);
-
-        if (!cancelled) {
-          setError("Unable to load live AI risk data");
-        }
-      }
+    if (!cancelled) {
+      setRiskData(data);
+      setError(null);
     }
+  } catch (err) {
+    console.error("Failed to load live risk:", err);
 
-    loadLiveRisk();
+    if (!cancelled) {
+      setError("Unable to load live risk data");
+    }
+  }
+}
 
+loadLiveRisk();
+
+return () => {
+  cancelled = true;
+};
+    
+    
     const interval = setInterval(loadLiveRisk, 60000);
 
     return () => {
@@ -63,6 +58,7 @@ function LiveRisk({ locationId = 1 }) {
       <div className="live-risk-card">
         <h2>Live AI Risk Assessment</h2>
         <p>Loading AI risk assessment...</p>
+
       </div>
     );
   }

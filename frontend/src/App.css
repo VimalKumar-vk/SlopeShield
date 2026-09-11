@@ -206,6 +206,33 @@ body {
   border-right: 0;
 }
 
+.sidebar-close {
+  position: relative;
+  top: 15px;
+  right: 15px;
+
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #334155;
+  border-radius: 8px;
+
+  background: #1e293b;
+  color: white;
+
+  font-size: 20px;
+  cursor: pointer;
+
+  z-index: 10;
+}
+
+.sidebar-close:hover {
+  background: #2563eb;
+}
 
 /* =========================================================
    SIDEBAR BRAND
@@ -1655,6 +1682,14 @@ body {
     #5bb7ff;
 }
 
+/* Hamburger button should always remain visible */
+.menu-toggle {
+  display: flex;
+}
+
+
+/* =========================================
+   HEADER RIGHT
 
 .zone-stat {
   display: flex;
@@ -2197,9 +2232,8 @@ body {
 .simulation-grid {
   display: grid;
 
-  grid-template-columns:
-    1.05fr
-    0.95fr;
+   grid-template-columns:
+    repeat(2, minmax(0, 1fr));
 
   gap: 15px;
 }
@@ -2411,6 +2445,207 @@ body {
 
 
 @media (max-width: 1020px) {
+/*  LIVE WEATHER*/
+
+.live-weather-card {
+  padding: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #182235,
+      #121a29
+    );
+
+  border:
+    1px solid
+    #2a3850;
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 14px 35px
+    rgba(0, 0, 0, 0.15);
+}
+
+.live-weather-card h2 {
+  margin:
+    0
+    0
+    8px;
+
+  color: #fff;
+}
+
+.live-weather-card h3 {
+  margin:
+    0
+    0
+    20px;
+
+  color: #60a5fa;
+}
+
+.live-weather-card p {
+  padding:
+    12px
+    0;
+
+  margin: 0;
+
+  color: #cbd5e1;
+
+  border-bottom:
+    1px solid
+    #263247;
+}
+
+.live-weather-card small {
+  display: block;
+
+  margin-top: 18px;
+
+  color: #64748b;
+}
+
+
+/*  LIVE AI RISK*/
+
+.live-risk-card {
+  padding: 24px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #182235,
+      #121a29
+    );
+
+  border:
+    1px solid
+    #2a3850;
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 14px 35px
+    rgba(0, 0, 0, 0.15);
+}
+
+.live-risk-card .card-header h2 {
+  margin: 0;
+
+  color: #ffffff;
+}
+
+.live-risk-card .card-header p {
+  margin:
+    6px
+    0
+    0;
+
+  color: #94a3b8;
+}
+
+.live-risk-content {
+  display: flex;
+
+  align-items: center;
+
+  gap: 30px;
+}
+
+.live-risk-score {
+  width: 160px;
+  height: 160px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  border:
+    7px solid
+    #3b82f6;
+
+  border-radius: 50%;
+
+  background:
+    rgba(37, 99, 235, 0.08);
+}
+
+.live-risk-score h1 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 48px;
+}
+
+.live-risk-score span {
+  margin-top: 5px;
+
+  color: #94a3b8;
+
+  font-size: 13px;
+}
+
+.live-risk-environment {
+  flex: 1;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 12px;
+}
+
+.live-risk-environment div {
+  padding: 14px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+
+  background:
+    #111827;
+
+  border:
+    1px solid
+    #263247;
+
+  border-radius: 10px;
+}
+
+.live-risk-environment span {
+  color: #94a3b8;
+
+  font-size: 13px;
+}
+
+.live-risk-environment strong {
+  color: #ffffff;
+
+  font-size: 18px;
+}
+
+.live-risk-card small {
+  display: block;
+
+  margin-top: 20px;
+
+  color: #64748b;
+}
+
+
+/* RESPONSIVE */
 
   .stats-grid {
     grid-template-columns:
@@ -2444,18 +2679,16 @@ body {
 
     width: 250px;
 
-    flex-basis: 250px;
-
-    box-shadow:
-      24px 0 75px
-      rgba(0, 0, 0, 0.55);
+  .sidebar.sidebar-open {
+    width: 280px;
+    
+    transform:
+      translateX(0);
   }
 
 
-  .sidebar-closed {
-    width: 250px;
-
-    flex-basis: 250px;
+  .sidebar.sidebar-closed {
+    width: 280px;
 
     transform:
       translateX(-100%);
@@ -2558,5 +2791,18 @@ body {
     font-size:
       43px;
   }
+  .live-risk-content {
+  flex-direction: column;
+}
 
+.live-risk-environment {
+  width: 100%;
+
+  grid-template-columns: 1fr;
+}
+
+.live-risk-score {
+  width: 140px;
+  height: 140px;
+}
 }
