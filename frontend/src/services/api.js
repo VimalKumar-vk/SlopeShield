@@ -69,6 +69,11 @@ export const api = {
       method: "POST",
     }),
 
+    resolveAlert: (alertId) =>
+  request(`/alerts/${alertId}/resolve`, {
+    method: "PUT",
+  }),
+
 
   // ==================================================
   // RISK

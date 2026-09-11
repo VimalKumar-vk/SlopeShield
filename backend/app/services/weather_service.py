@@ -1,5 +1,6 @@
 import httpx
 
+from app.services.vegetation_service import get_vegetation_index
 from app.database.models import EnvironmentalReading, Location
 from app.database.session import SessionLocal
 
@@ -76,7 +77,10 @@ def get_weather_data_by_coordinates(
         longitude,
     )
 
-    hourly = weather_data.get("hourly", {})
+    hourly = weather_data.get(
+        "hourly",
+        {},
+    )
 
     precipitation = hourly.get(
         "precipitation",
@@ -300,10 +304,14 @@ def collect_weather_for_location(
             )
         )
 
-        # Open-Meteo currently does not
-        # provide vegetation index here.
+        # -------------------------------------------------
+        # Get REAL vegetation index (NDVI)
+        # -------------------------------------------------
 
-        vegetation_index = None
+        vegetation_index = get_vegetation_index(
+            latitude=location.latitude,
+            longitude=location.longitude,
+        )
 
         # -------------------------------------------------
         # Save reading into database
@@ -334,7 +342,7 @@ def collect_weather_for_location(
         db.refresh(reading)
 
         print(
-            "Weather data saved to database:"
+            "Weather + vegetation data saved to database:"
         )
 
         print(

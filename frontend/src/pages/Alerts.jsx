@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../services/api";
 
-
 // ============================================================
 // EMERGENCY SIREN ENGINE
 // ============================================================
 
 class EmergencySiren {
-
   constructor() {
     this.audioContext = null;
     this.oscillators = [];
@@ -16,14 +14,10 @@ class EmergencySiren {
     this.running = false;
   }
 
-
   async initialize() {
-
     if (!this.audioContext) {
-
       const AudioContext =
-        window.AudioContext ||
-        window.webkitAudioContext;
+        window.AudioContext || window.webkitAudioContext;
 
       if (!AudioContext) {
         throw new Error(
@@ -31,507 +25,281 @@ class EmergencySiren {
         );
       }
 
-      this.audioContext =
-        new AudioContext();
+      this.audioContext = new AudioContext();
     }
 
-
-    if (
-      this.audioContext.state === "suspended"
-    ) {
+    if (this.audioContext.state === "suspended") {
       await this.audioContext.resume();
     }
-
   }
 
-
   async start() {
-
     await this.initialize();
-
 
     if (this.running) {
       return;
     }
 
-
     this.running = true;
 
+    const ctx = this.audioContext;
 
-    const ctx =
-      this.audioContext;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-
-    // --------------------------------------------------------
-    // MAIN SIREN OSCILLATOR
-    // --------------------------------------------------------
-
-    const oscillator =
-      ctx.createOscillator();
-
-    const gain =
-      ctx.createGain();
-
-
-    oscillator.type =
-      "sawtooth";
-
+    oscillator.type = "sawtooth";
 
     oscillator.frequency.setValueAtTime(
       520,
       ctx.currentTime
     );
 
-
     gain.gain.setValueAtTime(
       0.0001,
       ctx.currentTime
     );
 
-
     oscillator.connect(gain);
-
-    gain.connect(
-      ctx.destination
-    );
-
-
+    gain.connect(ctx.destination);
     oscillator.start();
 
+    this.oscillators.push(oscillator);
+    this.gainNodes.push(gain);
 
-    this.oscillators.push(
-      oscillator
-    );
+    const oscillator2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
 
-    this.gainNodes.push(
-      gain
-    );
-
-
-    // --------------------------------------------------------
-    // SECOND OSCILLATOR
-    // Gives the siren a fuller emergency tone.
-    // --------------------------------------------------------
-
-    const oscillator2 =
-      ctx.createOscillator();
-
-    const gain2 =
-      ctx.createGain();
-
-
-    oscillator2.type =
-      "square";
-
+    oscillator2.type = "square";
 
     oscillator2.frequency.setValueAtTime(
       780,
       ctx.currentTime
     );
 
-
     gain2.gain.setValueAtTime(
       0.0001,
       ctx.currentTime
     );
 
-
     oscillator2.connect(gain2);
-
-    gain2.connect(
-      ctx.destination
-    );
-
-
+    gain2.connect(ctx.destination);
     oscillator2.start();
 
-
-    this.oscillators.push(
-      oscillator2
-    );
-
-    this.gainNodes.push(
-      gain2
-    );
-
-
-    // --------------------------------------------------------
-    // SIREN SWEEP
-    // --------------------------------------------------------
+    this.oscillators.push(oscillator2);
+    this.gainNodes.push(gain2);
 
     let high = false;
 
-
     const runSweep = () => {
-
       if (!this.running) {
         return;
       }
 
-
-      const now =
-        ctx.currentTime;
-
+      const now = ctx.currentTime;
 
       if (!high) {
-
         oscillator.frequency.exponentialRampToValueAtTime(
           1050,
           now + 0.9
         );
 
-
         oscillator2.frequency.exponentialRampToValueAtTime(
           1450,
           now + 0.9
         );
-
-
-        gain.gain.exponentialRampToValueAtTime(
-          0.13,
-          now + 0.15
-        );
-
-
-        gain2.gain.exponentialRampToValueAtTime(
-          0.035,
-          now + 0.15
-        );
-
       } else {
-
         oscillator.frequency.exponentialRampToValueAtTime(
           480,
           now + 0.9
         );
 
-
         oscillator2.frequency.exponentialRampToValueAtTime(
           650,
           now + 0.9
         );
-
-
-        gain.gain.exponentialRampToValueAtTime(
-          0.13,
-          now + 0.15
-        );
-
-
-        gain2.gain.exponentialRampToValueAtTime(
-          0.035,
-          now + 0.15
-        );
-
       }
 
+      gain.gain.exponentialRampToValueAtTime(
+        0.13,
+        now + 0.15
+      );
+
+      gain2.gain.exponentialRampToValueAtTime(
+        0.035,
+        now + 0.15
+      );
 
       high = !high;
-
     };
-
 
     runSweep();
 
-
-    this.interval =
-      setInterval(
-        runSweep,
-        900
-      );
-
+    this.interval = setInterval(
+      runSweep,
+      900
+    );
   }
 
-
   stop() {
-
     if (!this.audioContext) {
       return;
     }
 
-
     this.running = false;
 
-
     if (this.interval) {
-
-      clearInterval(
-        this.interval
-      );
-
+      clearInterval(this.interval);
       this.interval = null;
-
     }
 
+    const ctx = this.audioContext;
+    const now = ctx.currentTime;
 
-    const ctx =
-      this.audioContext;
+    this.gainNodes.forEach((gain) => {
+      try {
+        gain.gain.cancelScheduledValues(now);
 
-
-    const now =
-      ctx.currentTime;
-
-
-    this.gainNodes.forEach(
-      (gain) => {
-
-        try {
-
-          gain.gain.cancelScheduledValues(
-            now
-          );
-
-          gain.gain.exponentialRampToValueAtTime(
-            0.0001,
-            now + 0.15
-          );
-
-        } catch (error) {
-
-          console.error(
-            error
-          );
-
-        }
-
+        gain.gain.exponentialRampToValueAtTime(
+          0.0001,
+          now + 0.15
+        );
+      } catch (error) {
+        console.error(error);
       }
-    );
-
+    });
 
     setTimeout(() => {
-
-      this.oscillators.forEach(
-        (oscillator) => {
-
-          try {
-            oscillator.stop();
-          } catch (error) {
-            // Already stopped.
-          }
-
+      this.oscillators.forEach((oscillator) => {
+        try {
+          oscillator.stop();
+        } catch {
+          // Already stopped.
         }
-      );
-
+      });
 
       this.oscillators = [];
-
       this.gainNodes = [];
-
     }, 200);
-
   }
-
 
   async test() {
-
     await this.start();
 
-
     setTimeout(() => {
-
       this.stop();
-
     }, 2500);
-
   }
-
 }
-
 
 // ============================================================
 // ALERTS COMPONENT
 // ============================================================
 
 function Alerts() {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [sirenActive, setSirenActive] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [acknowledgingId, setAcknowledgingId] = useState(null);
 
-  const [alerts, setAlerts] =
-    useState([]);
-
-
-  const [loading, setLoading] =
-    useState(true);
-
-
-  const [error, setError] =
-    useState(null);
-
-
-  const [soundEnabled, setSoundEnabled] =
-    useState(false);
-
-
-  const [sirenActive, setSirenActive] =
-    useState(false);
-
-
-  const [lastUpdated, setLastUpdated] =
-    useState(null);
-
-
-  const sirenRef =
-    useRef(null);
-
-
-  const previousHighAlerts =
-    useRef(new Set());
-
-
-  const isMounted =
-    useRef(true);
-
+  const sirenRef = useRef(null);
+  const previousEmergencyAlerts = useRef(new Set());
+  const isMounted = useRef(true);
 
   // ==========================================================
   // CREATE SIREN ONCE
   // ==========================================================
 
   useEffect(() => {
-
-    sirenRef.current =
-      new EmergencySiren();
-
+    sirenRef.current = new EmergencySiren();
 
     return () => {
-
-      isMounted.current =
-        false;
-
+      isMounted.current = false;
 
       if (sirenRef.current) {
-
         sirenRef.current.stop();
-
       }
-
     };
-
   }, []);
-
 
   // ==========================================================
   // LOAD ACTIVE ALERTS
   // ==========================================================
 
-  const loadAlerts = async () => {
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
+    async function fetchAlerts() {
+      try {
+        setError(null);
 
-      setError(null);
+        const data = await api.getActiveAlerts();
 
+        if (cancelled || !isMounted.current) {
+          return;
+        }
 
-      const data =
-        await api.getActiveAlerts();
-
-
-      if (!isMounted.current) {
-        return;
-      }
-
-
-      const activeAlerts =
-        Array.isArray(data)
+        const activeAlerts = Array.isArray(data)
           ? data
           : [];
 
-
-      setAlerts(
-        activeAlerts
-      );
-
-
-      setLastUpdated(
-        new Date()
-      );
-
-    } catch (err) {
-
-      console.error(
-        "Failed to load alerts:",
-        err
-      );
-
-
-      if (isMounted.current) {
-
-        setError(
-          "Unable to load live alerts from backend."
+        setAlerts(activeAlerts);
+        setLastUpdated(new Date());
+      } catch (err) {
+        console.error(
+          "Failed to load alerts:",
+          err
         );
 
+        if (!cancelled && isMounted.current) {
+          setError(
+            "Unable to load live alerts from backend."
+          );
+        }
+      } finally {
+        if (!cancelled && isMounted.current) {
+          setLoading(false);
+        }
       }
-
-    } finally {
-
-      if (isMounted.current) {
-
-        setLoading(false);
-
-      }
-
     }
 
-  };
+    fetchAlerts();
 
-
-  // ==========================================================
-  // INITIAL LOAD + LIVE REFRESH
-  // ==========================================================
-
-  useEffect(() => {
-
-    loadAlerts();
-
-
-    const refreshInterval =
-      setInterval(
-        loadAlerts,
-        15000
-      );
-
+    const refreshInterval = setInterval(
+      fetchAlerts,
+      15000
+    );
 
     return () => {
-
-      clearInterval(
-        refreshInterval
-      );
-
+      cancelled = true;
+      clearInterval(refreshInterval);
     };
-
   }, []);
-
 
   // ==========================================================
   // GET SEVERITY
   // ==========================================================
 
-  const getSeverity = (alert) => {
-
-    const severity =
-      String(
-        alert?.severity ||
+  function getSeverity(alert) {
+    const severity = String(
+      alert?.severity ||
         alert?.level ||
         ""
-      ).toUpperCase();
+    ).toUpperCase();
 
-
-    if (
-      severity === "CRITICAL"
-    ) {
+    if (severity === "CRITICAL") {
       return "CRITICAL";
     }
 
-
-    if (
-      severity === "SEVERE"
-    ) {
+    if (severity === "SEVERE") {
       return "SEVERE";
     }
 
-
-    if (
-      severity === "HIGH"
-    ) {
+    if (severity === "HIGH") {
       return "HIGH";
     }
-
 
     if (
       severity === "MODERATE" ||
@@ -540,478 +308,259 @@ function Alerts() {
       return "MODERATE";
     }
 
-
     return "LOW";
-
-  };
-
+  }
 
   // ==========================================================
-  // HIGH PRIORITY CHECK
+  // EMERGENCY CHECK
   // ==========================================================
 
-  const isEmergencyAlert = (
-    alert
-  ) => {
-
-    const severity =
-      getSeverity(alert);
-
+  function isEmergencyAlert(alert) {
+    const severity = getSeverity(alert);
 
     return (
       severity === "HIGH" ||
       severity === "SEVERE" ||
       severity === "CRITICAL"
     );
-
-  };
-
+  }
 
   // ==========================================================
-  // GET LOCATION
+  // LOCATION
   // ==========================================================
 
-  const getLocationName = (
-    alert
-  ) => {
-
+  function getLocationName(alert) {
     return (
       alert?.location?.name ||
       alert?.location_name ||
       alert?.location ||
       `Location #${alert?.location_id || "Unknown"}`
     );
-
-  };
-
+  }
 
   // ==========================================================
-  // GET MESSAGE
+  // MESSAGE
   // ==========================================================
 
-  const getMessage = (
-    alert
-  ) => {
-
+  function getMessage(alert) {
     if (alert?.message) {
       return alert.message;
     }
 
+    const severity = getSeverity(alert);
 
-    const severity =
-      getSeverity(alert);
-
-
-    if (
-      severity === "CRITICAL"
-    ) {
-
-      return (
-        "Critical landslide risk detected. " +
-        "Immediate attention required."
-      );
-
+    if (severity === "CRITICAL") {
+      return "Critical landslide risk detected. Immediate attention required.";
     }
 
-
-    if (
-      severity === "SEVERE"
-    ) {
-
-      return (
-        "Severe landslide risk detected. " +
-        "Immediate precautionary action required."
-      );
-
+    if (severity === "SEVERE") {
+      return "Severe landslide risk detected. Immediate precautionary action required.";
     }
 
-
-    if (
-      severity === "HIGH"
-    ) {
-
-      return (
-        "High landslide risk detected. " +
-        "Close monitoring and precautionary action recommended."
-      );
-
+    if (severity === "HIGH") {
+      return "High landslide risk detected. Close monitoring and precautionary action recommended.";
     }
 
-
-    if (
-      severity === "MODERATE"
-    ) {
-
-      return (
-        "Moderate landslide risk detected. " +
-        "Continue monitoring environmental conditions."
-      );
-
+    if (severity === "MODERATE") {
+      return "Moderate landslide risk detected. Continue monitoring environmental conditions.";
     }
 
-
-    return (
-      "Environmental conditions are currently stable."
-    );
-
-  };
-
+    return "Environmental conditions are currently stable.";
+  }
 
   // ==========================================================
-  // FORMAT DATE
+  // FORMAT TIME
   // ==========================================================
 
-  const formatTime = (
-    value
-  ) => {
-
+  function formatTime(value) {
     if (!value) {
       return "Time unavailable";
     }
 
+    const date = new Date(value);
 
-    const date =
-      new Date(value);
-
-
-    if (
-      Number.isNaN(
-        date.getTime()
-      )
-    ) {
-
+    if (Number.isNaN(date.getTime())) {
       return String(value);
-
     }
 
-
     return date.toLocaleString();
-
-  };
-
+  }
 
   // ==========================================================
   // ENABLE SOUND
   // ==========================================================
 
-  const enableSound = async () => {
-
+  async function enableSound() {
     try {
-
       if (!sirenRef.current) {
         return;
       }
 
-
       await sirenRef.current.initialize();
 
+      setSoundEnabled(true);
 
-      setSoundEnabled(
-        true
-      );
-
-
-      // Short test
       await sirenRef.current.test();
 
-
-      setSirenActive(
-        true
-      );
-
+      setSirenActive(true);
 
       setTimeout(() => {
-
-        setSirenActive(
-          false
-        );
-
+        if (isMounted.current) {
+          setSirenActive(false);
+        }
       }, 2500);
-
     } catch (err) {
-
       console.error(
         "Unable to enable alert sound:",
         err
       );
 
-
       alert(
         "Unable to enable alert sound in this browser."
       );
-
     }
-
-  };
-
+  }
 
   // ==========================================================
   // START SIREN
   // ==========================================================
 
-  const startSiren = async () => {
-
-    if (!soundEnabled) {
+  async function startSiren() {
+    if (!soundEnabled || !sirenRef.current) {
       return;
     }
-
-
-    if (!sirenRef.current) {
-      return;
-    }
-
 
     try {
-
       await sirenRef.current.start();
-
-
-      setSirenActive(
-        true
-      );
-
+      setSirenActive(true);
     } catch (err) {
-
-      console.error(
-        "Siren error:",
-        err
-      );
-
+      console.error("Siren error:", err);
     }
-
-  };
-
+  }
 
   // ==========================================================
   // STOP SIREN
   // ==========================================================
 
-  const stopSiren = () => {
-
+  function stopSiren() {
     if (sirenRef.current) {
-
       sirenRef.current.stop();
-
     }
 
-
-    setSirenActive(
-      false
-    );
-
-  };
-
+    setSirenActive(false);
+  }
 
   // ==========================================================
   // DETECT NEW EMERGENCY ALERT
   // ==========================================================
 
   useEffect(() => {
+    const emergencyAlerts = alerts.filter(
+      isEmergencyAlert
+    );
 
-    const emergencyAlerts =
-      alerts.filter(
-        isEmergencyAlert
-      );
-
-
-    const currentIds =
-      new Set(
-        emergencyAlerts.map(
-          (alert) =>
-            String(alert.id)
-        )
-      );
-
-
-    // --------------------------------------------------------
-    // FIRST LOAD
-    // --------------------------------------------------------
+    const currentIds = new Set(
+      emergencyAlerts.map((alert) =>
+        String(alert.id)
+      )
+    );
 
     if (
-      previousHighAlerts.current.size ===
-      0
+      previousEmergencyAlerts.current.size === 0
     ) {
-
-      previousHighAlerts.current =
-        currentIds;
-
+      previousEmergencyAlerts.current = currentIds;
       return;
-
     }
-
-
-    // --------------------------------------------------------
-    // FIND NEW HIGH ALERT
-    // --------------------------------------------------------
 
     const newEmergencyAlert =
       emergencyAlerts.find(
         (alert) =>
-          !previousHighAlerts.current.has(
+          !previousEmergencyAlerts.current.has(
             String(alert.id)
           )
       );
-
 
     if (
       newEmergencyAlert &&
       soundEnabled
     ) {
-
       startSiren();
-
     }
 
+    previousEmergencyAlerts.current = currentIds;
 
-    previousHighAlerts.current =
-      currentIds;
-
-  }, [
-    alerts,
-    soundEnabled,
-  ]);
-
-
-  // ==========================================================
-  // KEEP SIREN ACTIVE WHILE EMERGENCY ALERT EXISTS
-  // ==========================================================
-
-  useEffect(() => {
-
-    const emergencyExists =
-      alerts.some(
-        isEmergencyAlert
-      );
-
-
-    if (
-      emergencyExists &&
-      soundEnabled &&
-      !sirenActive
-    ) {
-
-      // Do not automatically restart
-      // after manual stop.
-      return;
-
-    }
-
-
-    if (
-      !emergencyExists &&
-      sirenActive
-    ) {
-
-      stopSiren();
-
-    }
-
-  }, [
-    alerts,
-    soundEnabled,
-  ]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alerts, soundEnabled]);
 
   // ==========================================================
   // ACKNOWLEDGE ALERT
   // ==========================================================
 
-  const handleAcknowledge = async (
-    alertId
-  ) => {
-
+  async function handleAcknowledge(alertId) {
     try {
+      setAcknowledgingId(alertId);
 
-      await api.acknowledgeAlert(
-        alertId
+      await api.acknowledgeAlert(alertId);
+
+      setAlerts((previous) =>
+        previous.filter(
+          (alert) => alert.id !== alertId
+        )
       );
-
-
-      setAlerts(
-        (previous) =>
-          previous.filter(
-            (alert) =>
-              alert.id !== alertId
-          )
-      );
-
-
     } catch (err) {
-
       console.error(
         "Acknowledge alert error:",
         err
       );
 
-
       alert(
         "Unable to acknowledge this alert."
       );
-
+    } finally {
+      setAcknowledgingId(null);
     }
-
-  };
-
+  }
 
   // ==========================================================
   // COUNTS
   // ==========================================================
 
-  const criticalCount =
-    alerts.filter(
-      (alert) =>
-        getSeverity(alert) ===
-        "CRITICAL"
-    ).length;
+  const criticalCount = alerts.filter(
+    (alert) =>
+      getSeverity(alert) === "CRITICAL"
+  ).length;
 
+  const severeCount = alerts.filter(
+    (alert) =>
+      getSeverity(alert) === "SEVERE"
+  ).length;
 
-  const severeCount =
-    alerts.filter(
-      (alert) =>
-        getSeverity(alert) ===
-        "SEVERE"
-    ).length;
+  const highCount = alerts.filter(
+    (alert) =>
+      getSeverity(alert) === "HIGH"
+  ).length;
 
-
-  const highCount =
-    alerts.filter(
-      (alert) =>
-        getSeverity(alert) ===
-        "HIGH"
-    ).length;
-
-
-  const moderateCount =
-    alerts.filter(
-      (alert) =>
-        getSeverity(alert) ===
-        "MODERATE"
-    ).length;
-
+  const moderateCount = alerts.filter(
+    (alert) =>
+      getSeverity(alert) === "MODERATE"
+  ).length;
 
   const emergencyCount =
     criticalCount +
     severeCount +
     highCount;
 
-
   // ==========================================================
   // UI
   // ==========================================================
 
   return (
-
     <div className="page-container">
 
-
-      {/* ======================================================
-          HEADER
-      ====================================================== */}
+      {/* HEADER */}
 
       <div className="page-header">
-
         <div>
-
           <p className="page-eyebrow">
             EARLY WARNING SYSTEM
           </p>
@@ -1024,49 +573,36 @@ function Alerts() {
             Monitor and manage AI-generated
             landslide warnings.
           </p>
-
         </div>
-
 
         <div className="live-status">
-
           <span className="live-dot"></span>
-
           ALERT SYSTEM ACTIVE
-
         </div>
-
       </div>
 
-
-      {/* ======================================================
-          EMERGENCY BANNER
-      ====================================================== */}
+      {/* EMERGENCY BANNER */}
 
       {emergencyCount > 0 && (
-
         <div
           style={{
             marginBottom: "16px",
             padding: "18px 20px",
             borderRadius: "12px",
-            background:
-              sirenActive
-                ? "#7f1d1d"
-                : "#991b1b",
+            background: sirenActive
+              ? "#7f1d1d"
+              : "#991b1b",
             color: "#ffffff",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             gap: "15px",
             flexWrap: "wrap",
-            boxShadow:
-              sirenActive
-                ? "0 0 25px rgba(220,38,38,0.45)"
-                : "none",
+            boxShadow: sirenActive
+              ? "0 0 25px rgba(220,38,38,0.45)"
+              : "none",
           }}
         >
-
           <div
             style={{
               display: "flex",
@@ -1074,28 +610,14 @@ function Alerts() {
               gap: "12px",
             }}
           >
-
-            <span
-              style={{
-                fontSize: "30px",
-              }}
-            >
+            <span style={{ fontSize: "30px" }}>
               🚨
             </span>
 
-
             <div>
-
-              <strong
-                style={{
-                  fontSize: "18px",
-                }}
-              >
-
+              <strong style={{ fontSize: "18px" }}>
                 EMERGENCY LANDSLIDE WARNING
-
               </strong>
-
 
               <div
                 style={{
@@ -1103,20 +625,14 @@ function Alerts() {
                   opacity: 0.9,
                 }}
               >
-
-                {emergencyCount} high-priority
-                alert
+                {emergencyCount} high-priority alert
                 {emergencyCount !== 1
                   ? "s"
                   : ""}{" "}
                 require attention.
-
               </div>
-
             </div>
-
           </div>
-
 
           <div
             style={{
@@ -1125,61 +641,36 @@ function Alerts() {
               flexWrap: "wrap",
             }}
           >
-
             {sirenActive ? (
-
               <button
-                onClick={
-                  stopSiren
-                }
+                onClick={stopSiren}
                 className="action-button"
                 style={{
-                  background:
-                    "#ffffff",
-                  color:
-                    "#991b1b",
-                  fontWeight:
-                    "700",
+                  background: "#ffffff",
+                  color: "#991b1b",
+                  fontWeight: "700",
                 }}
               >
-
                 🔇 Stop Siren
-
               </button>
-
             ) : soundEnabled ? (
-
               <button
-                onClick={
-                  startSiren
-                }
+                onClick={startSiren}
                 className="action-button"
                 style={{
-                  background:
-                    "#ffffff",
-                  color:
-                    "#991b1b",
-                  fontWeight:
-                    "700",
+                  background: "#ffffff",
+                  color: "#991b1b",
+                  fontWeight: "700",
                 }}
               >
-
                 🔊 Start Siren
-
               </button>
-
             ) : null}
-
           </div>
-
         </div>
-
       )}
 
-
-      {/* ======================================================
-          SOUND CONTROL
-      ====================================================== */}
+      {/* SOUND CONTROL */}
 
       <div
         className="dashboard-card"
@@ -1187,61 +678,42 @@ function Alerts() {
           marginBottom: "16px",
           display: "flex",
           alignItems: "center",
-          justifyContent:
-            "space-between",
+          justifyContent: "space-between",
           gap: "15px",
           flexWrap: "wrap",
         }}
       >
-
         <div>
-
           <strong>
             Alert Warning Sound
           </strong>
 
           <p
             style={{
-              margin:
-                "5px 0 0",
+              margin: "5px 0 0",
               opacity: 0.7,
             }}
           >
-
             {soundEnabled
               ? "Emergency sound is enabled for HIGH, SEVERE and CRITICAL alerts."
               : "Enable sound to receive an audible warning for emergency alerts."}
-
           </p>
-
         </div>
-
 
         <button
           className="action-button"
-          onClick={
-            enableSound
-          }
-          disabled={
-            soundEnabled
-          }
+          onClick={enableSound}
+          disabled={soundEnabled}
         >
-
           {soundEnabled
             ? "🔊 Sound Enabled"
             : "🔔 Enable Alert Sound"}
-
         </button>
-
       </div>
 
-
-      {/* ======================================================
-          LAST UPDATED
-      ====================================================== */}
+      {/* LAST UPDATED */}
 
       {lastUpdated && (
-
         <div
           style={{
             marginBottom: "12px",
@@ -1249,49 +721,30 @@ function Alerts() {
             opacity: 0.65,
           }}
         >
-
-          Live data updated:
-          {" "}
+          Live data updated:{" "}
           {lastUpdated.toLocaleTimeString()}
-
         </div>
-
       )}
 
-
-      {/* ======================================================
-          ERROR
-      ====================================================== */}
+      {/* ERROR */}
 
       {error && (
-
         <div
           className="dashboard-card"
           style={{
             marginBottom: "16px",
-            borderLeft:
-              "5px solid #dc2626",
+            borderLeft: "5px solid #dc2626",
           }}
         >
-
           ⚠️ {error}
-
         </div>
-
       )}
 
-
-      {/* ======================================================
-          STATISTICS
-      ====================================================== */}
+      {/* STATISTICS */}
 
       <div className="stats-grid">
 
-
-        {/* CRITICAL */}
-
         <div className="stat-card">
-
           <div className="stat-icon">
             🚨
           </div>
@@ -1301,21 +754,15 @@ function Alerts() {
           </p>
 
           <h2>
-            {criticalCount +
-              severeCount}
+            {criticalCount + severeCount}
           </h2>
 
           <span>
             Immediate attention required
           </span>
-
         </div>
 
-
-        {/* HIGH */}
-
         <div className="stat-card">
-
           <div className="stat-icon">
             ⚠️
           </div>
@@ -1331,14 +778,9 @@ function Alerts() {
           <span>
             Close monitoring required
           </span>
-
         </div>
 
-
-        {/* MODERATE */}
-
         <div className="stat-card">
-
           <div className="stat-icon">
             🟠
           </div>
@@ -1354,14 +796,9 @@ function Alerts() {
           <span>
             Continue monitoring
           </span>
-
         </div>
 
-
-        {/* TOTAL */}
-
         <div className="stat-card">
-
           <div className="stat-icon">
             📡
           </div>
@@ -1377,18 +814,13 @@ function Alerts() {
           <span>
             Current monitoring alerts
           </span>
-
         </div>
 
       </div>
 
-
-      {/* ======================================================
-          LOADING
-      ====================================================== */}
+      {/* LOADING */}
 
       {loading && (
-
         <div
           className="dashboard-card"
           style={{
@@ -1397,331 +829,221 @@ function Alerts() {
             padding: "35px",
           }}
         >
-
           📡 Loading live alerts...
-
         </div>
-
       )}
 
+      {/* NO ALERTS */}
 
-      {/* ======================================================
-          NO ALERTS
-      ====================================================== */}
-
-      {!loading &&
-        alerts.length === 0 && (
-
+      {!loading && alerts.length === 0 && (
+        <div
+          className="dashboard-card"
+          style={{
+            marginTop: "16px",
+            textAlign: "center",
+            padding: "45px",
+          }}
+        >
           <div
-            className="dashboard-card"
             style={{
-              marginTop: "16px",
-              textAlign: "center",
-              padding: "45px",
+              fontSize: "45px",
+              marginBottom: "10px",
             }}
           >
-
-            <div
-              style={{
-                fontSize: "45px",
-                marginBottom: "10px",
-              }}
-            >
-              ✅
-            </div>
-
-            <h2>
-              No Active Alerts
-            </h2>
-
-            <p>
-              No active landslide warnings
-              are currently reported.
-            </p>
-
+            ✅
           </div>
 
-        )}
+          <h2>
+            No Active Alerts
+          </h2>
 
+          <p>
+            No active landslide warnings
+            are currently reported.
+          </p>
+        </div>
+      )}
 
-      {/* ======================================================
-          ALERT LIST
-      ====================================================== */}
+      {/* ALERT LIST */}
 
-      {!loading &&
-        alerts.length > 0 && (
+      {!loading && alerts.length > 0 && (
+        <div
+          className="alerts-list"
+          style={{
+            marginTop: "16px",
+          }}
+        >
+          {alerts.map((alertItem) => {
+            const severity =
+              getSeverity(alertItem);
 
-          <div
-            className="alerts-list"
-            style={{
-              marginTop: "16px",
-            }}
-          >
+            const emergency =
+              isEmergencyAlert(alertItem);
 
-            {alerts.map(
-              (alert) => {
+            const isAcknowledging =
+              acknowledgingId ===
+              alertItem.id;
 
-                const severity =
-                  getSeverity(
-                    alert
-                  );
+            return (
+              <div
+                className={`dashboard-card alert-item ${severity.toLowerCase()}`}
+                key={alertItem.id}
+                style={{
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  className={`alert-indicator ${severity.toLowerCase()}`}
+                ></div>
 
+                <div className="alert-content">
 
-                const emergency =
-                  isEmergencyAlert(
-                    alert
-                  );
+                  {/* TOP ROW */}
 
+                  <div className="alert-top">
 
-                return (
+                    <span className="alert-id">
+                      AL-
+                      {String(
+                        alertItem.id
+                      ).padStart(3, "0")}
+                    </span>
 
-                  <div
-                    className={`dashboard-card alert-item ${severity.toLowerCase()}`}
-                    key={alert.id}
-                    style={{
-                      position:
-                        "relative",
-                      overflow:
-                        "hidden",
-                    }}
-                  >
-
-
-                    {/* ALERT INDICATOR */}
-
-                    <div
-                      className={`alert-indicator ${severity.toLowerCase()}`}
-                    ></div>
-
-
-                    <div
-                      className="alert-content"
+                    <span
+                      className={`risk-badge ${severity.toLowerCase()}`}
                     >
-
-
-                      {/* TOP ROW */}
-
-                      <div
-                        className="alert-top"
-                      >
-
-                        <span
-                          className="alert-id"
-                        >
-
-                          AL-
-                          {String(
-                            alert.id
-                          ).padStart(
-                            3,
-                            "0"
-                          )}
-
-                        </span>
-
-
-                        <span
-                          className={`risk-badge ${severity.toLowerCase()}`}
-                        >
-
-                          {severity ===
-                            "CRITICAL"
-                            ? "🚨 CRITICAL"
-                            : severity ===
-                              "SEVERE"
-                              ? "🚨 SEVERE"
-                              : severity ===
-                                "HIGH"
-                                ? "⚠️ HIGH"
-                                : severity ===
-                                  "MODERATE"
-                                  ? "🟠 MODERATE"
-                                  : "🟢 LOW"}
-
-                        </span>
-
-                      </div>
-
-
-                      {/* EMERGENCY LABEL */}
-
-                      {emergency && (
-
-                        <div
-                          style={{
-                            marginTop:
-                              "10px",
-                            fontSize:
-                              "12px",
-                            fontWeight:
-                              "700",
-                            letterSpacing:
-                              "0.5px",
-                          }}
-                        >
-
-                          🚨 EMERGENCY
-                          WARNING
-
-                        </div>
-
-                      )}
-
-
-                      {/* LOCATION */}
-
-                      <h2>
-                        {getLocationName(
-                          alert
-                        )}
-                      </h2>
-
-
-                      {/* MESSAGE */}
-
-                      <p>
-                        {getMessage(
-                          alert
-                        )}
-                      </p>
-
-
-                      {/* DETAILS */}
-
-                      <div
-                        style={{
-                          display:
-                            "flex",
-                          gap:
-                            "15px",
-                          flexWrap:
-                            "wrap",
-                          marginTop:
-                            "10px",
-                        }}
-                      >
-
-                        <span
-                          className="alert-time"
-                        >
-
-                          🕒
-                          {" "}
-                          {formatTime(
-                            alert.created_at
-                          )}
-
-                        </span>
-
-
-                        <span
-                          className="alert-time"
-                        >
-
-                          📍 Location ID:
-                          {" "}
-                          {alert.location_id}
-
-                        </span>
-
-
-                        <span
-                          className="alert-time"
-                        >
-
-                          Status:
-                          {" "}
-                          {alert.status ||
-                            "ACTIVE"}
-
-                        </span>
-
-                      </div>
-
-
-                      {/* ACTIONS */}
-
-                      <div
-                        style={{
-                          marginTop:
-                            "16px",
-                          display:
-                            "flex",
-                          gap:
-                            "10px",
-                          flexWrap:
-                            "wrap",
-                        }}
-                      >
-
-                        {emergency &&
-                          sirenActive && (
-
-                            <button
-                              className="action-button"
-                              onClick={
-                                stopSiren
-                              }
-                            >
-
-                              🔇 Stop Siren
-
-                            </button>
-
-                          )}
-
-
-                        {emergency &&
-                          soundEnabled &&
-                          !sirenActive && (
-
-                            <button
-                              className="action-button"
-                              onClick={
-                                startSiren
-                              }
-                            >
-
-                              🔊 Start Siren
-
-                            </button>
-
-                          )}
-
-
-                        <button
-                          className="action-button"
-                          onClick={() =>
-                            handleAcknowledge(
-                              alert.id
-                            )
-                          }
-                        >
-
-                          ✓ Acknowledge Alert
-
-                        </button>
-
-                      </div>
-
-                    </div>
+                      {severity === "CRITICAL"
+                        ? "🚨 CRITICAL"
+                        : severity === "SEVERE"
+                        ? "🚨 SEVERE"
+                        : severity === "HIGH"
+                        ? "⚠️ HIGH"
+                        : severity === "MODERATE"
+                        ? "🟠 MODERATE"
+                        : "🟢 LOW"}
+                    </span>
 
                   </div>
 
-                );
+                  {/* EMERGENCY LABEL */}
 
-              }
-            )}
+                  {emergency && (
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      🚨 EMERGENCY WARNING
+                    </div>
+                  )}
 
-          </div>
+                  {/* LOCATION */}
 
-        )}
+                  <h2>
+                    {getLocationName(
+                      alertItem
+                    )}
+                  </h2>
+
+                  {/* MESSAGE */}
+
+                  <p>
+                    {getMessage(
+                      alertItem
+                    )}
+                  </p>
+
+                  {/* DETAILS */}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "15px",
+                      flexWrap: "wrap",
+                      marginTop: "10px",
+                    }}
+                  >
+                    <span className="alert-time">
+                      🕒{" "}
+                      {formatTime(
+                        alertItem.created_at
+                      )}
+                    </span>
+
+                    <span className="alert-time">
+                      📍 Location ID:{" "}
+                      {alertItem.location_id ??
+                        "N/A"}
+                    </span>
+
+                    <span className="alert-time">
+                      Status:{" "}
+                      {alertItem.status ||
+                        "ACTIVE"}
+                    </span>
+                  </div>
+
+                  {/* ACTIONS */}
+
+                  <div
+                    style={{
+                      marginTop: "16px",
+                      display: "flex",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+
+                    {emergency &&
+                      sirenActive && (
+                        <button
+                          className="action-button"
+                          onClick={stopSiren}
+                        >
+                          🔇 Stop Siren
+                        </button>
+                      )}
+
+                    {emergency &&
+                      soundEnabled &&
+                      !sirenActive && (
+                        <button
+                          className="action-button"
+                          onClick={startSiren}
+                        >
+                          🔊 Start Siren
+                        </button>
+                      )}
+
+                    <button
+                      className="action-button"
+                      onClick={() =>
+                        handleAcknowledge(
+                          alertItem.id
+                        )
+                      }
+                      disabled={isAcknowledging}
+                    >
+                      {isAcknowledging
+                        ? "Acknowledging..."
+                        : "✓ Acknowledge Alert"}
+                    </button>
+
+                  </div>
+
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
     </div>
-
   );
-
 }
-
 
 export default Alerts;
