@@ -33,6 +33,7 @@ def get_weather_data(latitude: float, longitude: float):
             "relative_humidity_2m,"
             "rain,"
             "precipitation,"
+            "wind_speed_10m,"
             "soil_moisture_0_to_7cm"
         ),
 
@@ -91,6 +92,35 @@ def get_weather_data_by_coordinates(
     )
 
     # -----------------------------------------------------
+    # Current weather
+    # -----------------------------------------------------
+
+    current = weather_data.get(
+        "current",
+        {},
+    )
+
+    temperature = current.get(
+        "temperature_2m"
+    )
+
+    humidity = current.get(
+        "relative_humidity_2m"
+    )
+
+    current_rain = current.get(
+        "rain"
+    )
+
+    current_precipitation = current.get(
+        "precipitation"
+    )
+
+    wind_speed = current.get(
+        "wind_speed_10m"
+    )
+
+    # -----------------------------------------------------
     # Rainfall - last 24 hours
     # -----------------------------------------------------
 
@@ -122,32 +152,7 @@ def get_weather_data_by_coordinates(
             soil_moisture = latest_soil * 100
 
     # -----------------------------------------------------
-    # Current weather
-    # -----------------------------------------------------
-
-    current = weather_data.get(
-        "current",
-        {},
-    )
-
-    temperature = current.get(
-        "temperature_2m"
-    )
-
-    humidity = current.get(
-        "relative_humidity_2m"
-    )
-
-    current_rain = current.get(
-        "rain"
-    )
-
-    current_precipitation = current.get(
-        "precipitation"
-    )
-
-    # -----------------------------------------------------
-    # Return clean data
+    # Return clean live data
     # -----------------------------------------------------
 
     return {
@@ -159,6 +164,8 @@ def get_weather_data_by_coordinates(
 
         "rain": current_rain,
         "precipitation": current_precipitation,
+
+        "wind_speed": wind_speed,
 
         "rainfall_24h": round(
             rainfall_24h,
@@ -175,7 +182,6 @@ def get_weather_data_by_coordinates(
             2,
         ),
     }
-
 
 # =========================================================
 # 3. LIVE WEATHER FUNCTION

@@ -1,22 +1,34 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.services import weather_service
 from sqlalchemy.orm import Session
+
+from app.services import weather_service
 from app.services import risk_engine
+from app.services import environment_service
+from app.services.vegetation_service import get_vegetation_index
 
 from app.database.session import get_db
+
 from app.schemas import (
     EnvironmentalReading,
     EnvironmentalReadingCreate,
     EnvironmentalReadingUpdate,
 )
-from app.services import environment_service
 
 
 router = APIRouter()
 
 
-@router.get("/readings", response_model=list[EnvironmentalReading])
-def get_readings(db: Session = Depends(get_db)):
+# =========================================================
+# EXISTING ENVIRONMENTAL READING APIs
+# =========================================================
+
+@router.get(
+    "/readings",
+    response_model=list[EnvironmentalReading],
+)
+def get_readings(
+    db: Session = Depends(get_db),
+):
     return environment_service.get_readings(db)
 
 
@@ -60,17 +72,15 @@ def get_latest_location_reading(
     "/readings",
     response_model=EnvironmentalReading,
     status_code=status.HTTP_201_CREATED,
-    responses={
-        404: {
-            "description": "Location not found"
-        }
-    },
 )
 def create_reading(
     reading: EnvironmentalReadingCreate,
     db: Session = Depends(get_db),
 ):
-    return environment_service.create_reading(reading, db)
+    return environment_service.create_reading(
+        reading,
+        db,
+    )
 
 
 @router.put(
@@ -97,7 +107,9 @@ def update_reading(
     return reading
 
 
-@router.delete("/readings/{reading_id}")
+@router.delete(
+    "/readings/{reading_id}"
+)
 def delete_reading(
     reading_id: int,
     db: Session = Depends(get_db),
@@ -116,36 +128,47 @@ def delete_reading(
     return {
         "message": "Environmental reading deleted successfully"
     }
-@router.get("/readings/{location_id}/live")
+
+
+# =========================================================
+# LOCATION CONFIGURATION
+# =========================================================
+
+LOCATIONS = {
+    1: {
+        "name": "Aizawl",
+        "latitude": 23.7271,
+        "longitude": 92.7176,
+    },
+    2: {
+        "name": "Shillong",
+        "latitude": 25.5788,
+        "longitude": 91.8933,
+    },
+    3: {
+        "name": "Kohima",
+        "latitude": 25.6751,
+        "longitude": 94.1086,
+    },
+}
+
+
+# =========================================================
+# LIVE ENVIRONMENTAL DATA
+# =========================================================
+
+@router.get(
+    "/readings/{location_id}/live"
+)
 def get_live_environment_data(
     location_id: int,
-    db: Session = Depends(get_db),
 ):
     """
     Fetch real-time environmental data
     for a monitored location.
     """
 
-    # Temporary location lookup
-    locations = {
-        1: {
-            "name": "Aizawl",
-            "latitude": 23.7271,
-            "longitude": 92.7176,
-        },
-        2: {
-            "name": "Shillong",
-            "latitude": 25.5788,
-            "longitude": 91.8933,
-        },
-        3: {
-            "name": "Kohima",
-            "latitude": 25.6751,
-            "longitude": 94.1086,
-        },
-    }
-
-    location = locations.get(location_id)
+    location = LOCATIONS.get(location_id)
 
     if not location:
         raise HTTPException(
@@ -154,29 +177,52 @@ def get_live_environment_data(
         )
 
     try:
+
         weather_data = weather_service.get_live_weather(
             latitude=location["latitude"],
             longitude=location["longitude"],
         )
 
-        current = weather_data["current"]
-
         return {
             "location": location["name"],
             "location_id": location_id,
+
             "latitude": location["latitude"],
             "longitude": location["longitude"],
 
-            "temperature": current.get("temperature_2m"),
-            "humidity": current.get(
-                "relative_humidity_2m"
+            "temperature": weather_data.get(
+                "temperature"
             ),
-            "rain": current.get("rain"),
-            "precipitation": current.get(
+
+            "humidity": weather_data.get(
+                "humidity"
+            ),
+
+            "rain": weather_data.get(
+                "rain"
+            ),
+
+            "precipitation": weather_data.get(
                 "precipitation"
             ),
-            "wind_speed": current.get(
-                "wind_speed_10m"
+
+            "rainfall_24h": weather_data.get(
+                "rainfall_24h",
+                0,
+            ),
+
+            "rainfall_72h": weather_data.get(
+                "rainfall_72h",
+                0,
+            ),
+
+            "soil_moisture": weather_data.get(
+                "soil_moisture",
+                0,
+            ),
+
+            "wind_speed": weather_data.get(
+                "wind_speed"
             ),
 
             "source": "Live Weather API",
@@ -186,75 +232,20 @@ def get_live_environment_data(
 
         raise HTTPException(
             status_code=500,
-            detail=f"Unable to fetch live weather data: {str(error)}",
-        )
-
-    @router.get("/readings/{location_id}/live")
-    def get_live_environment_data(
-        location_id: int,
-        db: Session = Depends(get_db),
-    ):
-        """
-        Fetch real-time environmental data
-        for a monitored location.
-        """
-
-    locations = {
-        1: {
-                "name": "Aizawl",
-                "latitude": 23.7271,
-                "longitude": 92.7176,
-        },
-        2: {
-            "name": "Shillong",
-            "latitude": 25.5788,
-            "longitude": 91.8933,
-        },
-        3: {
-            "name": "Kohima",
-            "latitude": 25.6751,
-            "longitude": 94.1086,
-        },
-    }
-
-    location = locations.get(location_id)
-
-    if not location:
-        raise HTTPException(
-            status_code=404,
-            detail="Location not found",
-        )
-
-    try:
-        weather_data = weather_service.get_live_weather(
-            latitude=location["latitude"],
-            longitude=location["longitude"],
-        )
-
-        current = weather_data["current"]
-
-        return {
-            "location": location["name"],
-            "location_id": location_id,
-            "latitude": location["latitude"],
-            "longitude": location["longitude"],
-            "temperature": current.get("temperature_2m"),
-            "humidity": current.get("relative_humidity_2m"),
-            "rain": current.get("rain"),
-            "precipitation": current.get("precipitation"),
-            "wind_speed": current.get("wind_speed_10m"),
-            "source": "Live Weather API",
-        }
-
-    except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unable to fetch live weather data: {str(error)}",
+            detail=(
+                "Unable to fetch live weather data: "
+                f"{str(error)}"
+            ),
         )
 
 
-# IMPORTANT: No indentation before this decorator
-@router.get("/readings/{location_id}/live-risk")
+# =========================================================
+# LIVE LANDSLIDE RISK
+# =========================================================
+
+@router.get(
+    "/readings/{location_id}/live-risk"
+)
 def get_live_landslide_risk(
     location_id: int,
 ):
@@ -263,25 +254,7 @@ def get_live_landslide_risk(
     real-time environmental data.
     """
 
-    locations = {
-        1: {
-            "name": "Aizawl",
-            "latitude": 23.7271,
-            "longitude": 92.7176,
-        },
-        2: {
-            "name": "Shillong",
-            "latitude": 25.5788,
-            "longitude": 91.8933,
-        },
-        3: {
-            "name": "Kohima",
-            "latitude": 25.6751,
-            "longitude": 94.1086,
-        },
-    }
-
-    location = locations.get(location_id)
+    location = LOCATIONS.get(location_id)
 
     if not location:
         raise HTTPException(
@@ -290,37 +263,114 @@ def get_live_landslide_risk(
         )
 
     try:
+
+        # -------------------------------------------------
+        # Get live weather
+        # -------------------------------------------------
+
         weather_data = weather_service.get_live_weather(
             latitude=location["latitude"],
             longitude=location["longitude"],
         )
 
-        current = weather_data["current"]
+        # -------------------------------------------------
+        # Weather values
+        # -------------------------------------------------
 
-        rainfall = current.get("rain") or 0
-        precipitation = current.get("precipitation") or 0
-        humidity = current.get("relative_humidity_2m") or 0
-        wind_speed = current.get("wind_speed_10m") or 0
+        temperature = weather_data.get(
+            "temperature",
+            0,
+        )
+
+        humidity = weather_data.get(
+            "humidity",
+            0,
+        )
+
+        rainfall_24h = weather_data.get(
+            "rainfall_24h",
+            0,
+        )
+
+        rainfall_72h = weather_data.get(
+            "rainfall_72h",
+            0,
+        )
+
+        precipitation = weather_data.get(
+            "precipitation",
+            0,
+        )
+
+        soil_moisture = weather_data.get(
+            "soil_moisture",
+            0,
+        )
+
+        rain = weather_data.get(
+            "rain",
+            0,
+        )
+
+        wind_speed = weather_data.get(
+            "wind_speed",
+            0,
+        ) or 0
+
+        # -------------------------------------------------
+        # Get NDVI
+        # -------------------------------------------------
+
+        vegetation_index = get_vegetation_index(
+            latitude=location["latitude"],
+            longitude=location["longitude"],
+        )
+
+        # -------------------------------------------------
+        # Calculate landslide risk
+        # -------------------------------------------------
 
         risk = risk_engine.calculate_landslide_risk(
-            rainfall=rainfall,
+            rainfall=rainfall_24h,
             precipitation=precipitation,
             humidity=humidity,
             wind_speed=wind_speed,
         )
 
+        # -------------------------------------------------
+        # Final response
+        # -------------------------------------------------
+
         return {
             "location": location["name"],
             "location_id": location_id,
 
+            "latitude": location["latitude"],
+            "longitude": location["longitude"],
+
             "environment": {
-                "rainfall": rainfall,
-                "precipitation": precipitation,
+
+                "temperature": temperature,
+
                 "humidity": humidity,
+
+                "rain": rain,
+
+                "precipitation": precipitation,
+
+                "rainfall_24h": rainfall_24h,
+
+                "rainfall_72h": rainfall_72h,
+
+                "soil_moisture": soil_moisture,
+
+                "vegetation_index": vegetation_index,
+
                 "wind_speed": wind_speed,
             },
 
             "risk_score": risk["risk_score"],
+
             "risk_level": risk["risk_level"],
 
             "source": (
@@ -330,6 +380,7 @@ def get_live_landslide_risk(
         }
 
     except Exception as error:
+
         raise HTTPException(
             status_code=500,
             detail=(
