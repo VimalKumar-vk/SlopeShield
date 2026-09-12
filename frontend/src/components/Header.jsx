@@ -12,7 +12,7 @@ function Header({ sidebarOpen, onToggleSidebar }) {
               : "Open sidebar"
           }
         >
-          {sidebarOpen ? "☰" : "☰"}
+          {sidebarOpen ? " ☰" : "☰"}
         </button>
 
         <div className="header-logo">

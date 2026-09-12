@@ -57,6 +57,13 @@ def get_weather_data(latitude: float, longitude: float):
 
     return response.json()
 
+def get_live_weather(latitude: float, longitude: float):
+    """
+    Fetch live weather/environmental data
+    using latitude and longitude.
+    """
+    return get_weather_data(latitude, longitude)
+
 
 # =========================================================
 # 2. GET WEATHER DATA DIRECTLY BY COORDINATES

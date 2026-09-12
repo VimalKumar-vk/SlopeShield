@@ -1685,6 +1685,7 @@ body {
 /* Hamburger button should always remain visible */
 .menu-toggle {
   display: flex;
+  
 }
 
 
