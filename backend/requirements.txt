@@ -10,3 +10,4 @@ pandas
 requests
 httpx
 pystac-client
+planetary-computer
