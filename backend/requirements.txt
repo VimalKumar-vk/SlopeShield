@@ -9,3 +9,4 @@ numpy
 pandas
 requests
 httpx
+pystac-client
