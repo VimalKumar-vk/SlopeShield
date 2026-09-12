@@ -326,11 +326,14 @@ def collect_weather_for_location(
         # -------------------------------------------------
         # Get vegetation index
         # -------------------------------------------------
-
-        vegetation_index = get_vegetation_index(
-            latitude=location.latitude,
-            longitude=location.longitude,
-        )
+        
+        try:
+            vegetation_index = get_vegetation_index(
+                latitude=location["latitude"],
+                longitude=location["longitude"],
+            )
+        except Exception:
+            vegetation_index = None
 
         # -------------------------------------------------
         # Save reading into database
