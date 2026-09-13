@@ -5,14 +5,12 @@ class LocationBase(BaseModel):
     name: str
     district: str
     state: str
-
     latitude: float
     longitude: float
-
-    elevation: float | None = None
-    slope: float | None = None
-    distance_to_road: float | None = None
-    distance_to_river: float | None = None
+    elevation: float
+    slope: float
+    distance_to_road: float
+    distance_to_river: float
 
 
 class LocationCreate(LocationBase):

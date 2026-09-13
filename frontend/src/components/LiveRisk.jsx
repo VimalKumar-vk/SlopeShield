@@ -31,10 +31,7 @@ function LiveRisk({ locationId = 1 }) {
 
     const interval = setInterval(loadLiveRisk, 60000);
 
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [locationId]);
 
   // Loading
@@ -51,12 +48,7 @@ function LiveRisk({ locationId = 1 }) {
   if (error) {
     return (
       <div className="live-risk-card">
-        <div className="card-header">
-          <div>
-            <h2>Live AI Risk Assessment</h2>
-            <p>{error}</p>
-          </div>
-        </div>
+        {error}
       </div>
     );
   }
@@ -99,8 +91,10 @@ function LiveRisk({ locationId = 1 }) {
           </p>
         </div>
 
-        <span className={`risk-badge ${riskLevelClass}`}>
-          {riskLevel.toUpperCase()}
+        <span
+          className={`risk-badge ${riskLevelClass}`}
+        >
+          {riskData.risk_level.toUpperCase()}
         </span>
       </div>
 

@@ -88,7 +88,6 @@ function Dashboard() {
 
   return (
     <div className="page-container">
-
       <div className="page-header">
         <div>
           <p className="page-eyebrow">
@@ -111,7 +110,6 @@ function Dashboard() {
       <div className="stats-grid">
         {stats.map((stat) => (
           <div className="stat-card" key={stat.title}>
-
             <div className="stat-icon">
               {stat.icon}
             </div>
@@ -121,15 +119,12 @@ function Dashboard() {
             <h2>{stat.value}</h2>
 
             <span>{stat.description}</span>
-
           </div>
         ))}
       </div>
 
       <div className="dashboard-card risk-overview">
-
         <div className="card-header">
-
           <div>
             <h2>Regional Risk Overview</h2>
             <p>AI-generated risk assessment</p>
@@ -140,13 +135,10 @@ function Dashboard() {
           >
             {riskLevel.toUpperCase()}
           </span>
-
         </div>
 
         <div className="risk-visual">
-
           <div className="risk-circle">
-
             <div className="risk-score">
               {riskScore}
             </div>
@@ -154,21 +146,14 @@ function Dashboard() {
             <div className="risk-label">
               Risk Score
             </div>
-
           </div>
-
         </div>
-
       </div>
-
       <div className="dashboard-grid">
-
         <LiveWeather locationId={1} />
 
         <LiveRisk locationId={1} />
-
       </div>
-
     </div>
   );
 }

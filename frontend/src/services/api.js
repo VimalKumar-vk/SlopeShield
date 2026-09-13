@@ -1,7 +1,11 @@
-const API_BASE_URL = "https://slopeshield-backend.onrender.com/api";
+const API_BASE_URL =
+  "https://slopeshield-backend.onrender.com/api";
 
 async function request(endpoint, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+  const response = await fetch(
+    `${API_BASE_URL}${endpoint}`,
+    options
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -13,6 +17,7 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+
   // ==================================================
   // ANALYTICS
   // ==================================================
@@ -55,6 +60,187 @@ export const api = {
 
 
   // ==================================================
+  // LIVE CURRENT LOCATION
+  // ==================================================
+
+  getCurrentLocation: () =>
+    new Promise((resolve, reject) => {
+
+      if (!navigator.geolocation) {
+        reject(
+          new Error(
+            "Geolocation is not supported by this browser."
+          )
+        );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+
+        async (position) => {
+
+          try {
+
+            const latitude =
+              position.coords.latitude;
+
+            const longitude =
+              position.coords.longitude;
+
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10`
+            );
+
+            if (!response.ok) {
+              throw new Error(
+                "Unable to get location name."
+              );
+            }
+
+            const data =
+              await response.json();
+
+            resolve({
+
+              latitude,
+              longitude,
+
+              city:
+                data.address?.city ||
+                data.address?.town ||
+                data.address?.village ||
+                data.address?.municipality ||
+                "Unknown",
+
+              state:
+                data.address?.state ||
+                "Unknown",
+
+              country:
+                data.address?.country ||
+                "Unknown",
+
+              displayName:
+                data.display_name ||
+                "Unknown Location",
+
+            });
+
+          } catch (error) {
+
+            reject(error);
+
+          }
+
+        },
+
+        (error) => {
+
+          if (error.code === 1) {
+            reject(
+              new Error(
+                "Location permission denied."
+              )
+            );
+          } else if (error.code === 2) {
+            reject(
+              new Error(
+                "Location information is unavailable."
+              )
+            );
+          } else if (error.code === 3) {
+            reject(
+              new Error(
+                "Location request timed out."
+              )
+            );
+          } else {
+            reject(
+              new Error(
+                "Unable to get your current location."
+              )
+            );
+          }
+
+        },
+
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        }
+
+      );
+
+    }),
+    // ==================================================
+// SEARCH LOCATION
+// ==================================================
+
+searchLocation: async (query) => {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+      query
+    )}&limit=1`
+  );
+
+  if (!response.ok) {
+    throw new Error("Unable to search location.");
+  }
+
+  const data = await response.json();
+
+  if (!data || data.length === 0) {
+    throw new Error("Location not found.");
+  }
+
+  return {
+    latitude: Number(data[0].lat),
+    longitude: Number(data[0].lon),
+    displayName: data[0].display_name,
+  };
+},
+
+// ==================================================
+// WEATHER BY COORDINATES
+// ==================================================
+
+getWeatherByCoordinates: async (
+  latitude,
+  longitude
+) => {
+  const response = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m&temperature_unit=celsius&wind_speed_unit=kmh`
+  );
+
+  if (!response.ok) {
+    throw new Error("Unable to get weather data.");
+  }
+
+  const data = await response.json();
+
+  const celsius =
+    data.current?.temperature_2m ?? null;
+
+  const fahrenheit =
+    celsius !== null
+      ? (celsius * 9) / 5 + 32
+      : null;
+
+  return {
+    temperatureCelsius: celsius,
+    temperatureFahrenheit: fahrenheit,
+    humidity:
+      data.current?.relative_humidity_2m ?? null,
+    windSpeed:
+      data.current?.wind_speed_10m ?? null,
+    time:
+      data.current?.time ?? null,
+  };
+},
+
+
+  // ==================================================
   // ALERTS
   // ==================================================
 
@@ -69,38 +255,37 @@ export const api = {
       method: "POST",
     }),
 
-    resolveAlert: (alertId) =>
-  request(`/alerts/${alertId}/resolve`, {
-    method: "PUT",
-  }),
-
 
   // ==================================================
   // RISK
   // ==================================================
 
-getRiskOverview: () =>
-  request("/risk/overview"),
+  getRiskOverview: () =>
+    request("/risk/overview"),
 
-getRiskLocations: () =>
-  request("/risk/locations"),
+  getRiskLocations: () =>
+    request("/risk/locations"),
 
-getRiskLocation: (locationId) =>
-  request(`/risk/locations/${locationId}`),
+  getRiskLocation: (locationId) =>
+    request(`/risk/locations/${locationId}`),
 
-predictRisk: (riskData) =>
-  request("/risk/predict", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(riskData),
-  }),
+  predictRisk: (riskData) =>
+    request("/risk/predict", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(riskData),
+    }),
 
-predictRiskByCoordinates: (latitude, longitude) =>
-  request(
-    `/risk/predict-by-coordinates?latitude=${latitude}&longitude=${longitude}`
-  ),
+  predictRiskByCoordinates: (
+    latitude,
+    longitude
+  ) =>
+    request(
+      `/risk/predict-by-coordinates?latitude=${latitude}&longitude=${longitude}`
+    ),
+
 
   // ==================================================
   // ENVIRONMENTAL READINGS
@@ -124,7 +309,10 @@ predictRiskByCoordinates: (latitude, longitude) =>
       body: JSON.stringify(readingData),
     }),
 
-  updateReading: (readingId, readingData) =>
+  updateReading: (
+    readingId,
+    readingData
+  ) =>
     request(`/readings/${readingId}`, {
       method: "PUT",
       headers: {
@@ -145,6 +333,17 @@ predictRiskByCoordinates: (latitude, longitude) =>
 
   getLocationWeather: (locationId) =>
     request(`/weather/${locationId}`),
+
+
+  // ==================================================
+  // LIVE WEATHER / ENVIRONMENT
+  // ==================================================
+
+  getLiveEnvironmentData: (locationId) =>
+    request(`/readings/${locationId}/live`),
+
+  getLiveRiskData: (locationId) =>
+    request(`/readings/${locationId}/live-risk`),
 
 
   // ==================================================
@@ -175,10 +374,5 @@ predictRiskByCoordinates: (latitude, longitude) =>
 
   getHealth: () =>
     request("/health"),
-  // Live real-world weather data
-  getLiveEnvironmentData: (locationId) =>
-    request(`/readings/${locationId}/live`),
 
-  getLiveRiskData: (locationId) =>
-    request(`/readings/${locationId}/live-risk`),
 };

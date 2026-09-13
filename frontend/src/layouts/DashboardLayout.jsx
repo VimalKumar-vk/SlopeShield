@@ -11,25 +11,19 @@ function DashboardLayout({ children }) {
 
   return (
     <div className="dashboard-layout">
-      {/* Left Navigation */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Main Application Area */}
       <div className="main-area">
-        {/* Top Header */}
         <Header
           sidebarOpen={sidebarOpen}
           onToggleSidebar={toggleSidebar}
         />
 
-        {/* Main Content */}
         <main className="dashboard-content">
-          <div className="dashboard-content-inner">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </div>

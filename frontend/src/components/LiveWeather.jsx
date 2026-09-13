@@ -10,19 +10,28 @@ function LiveWeather({ locationId = 1 }) {
       try {
         setError(null);
 
-        const data = await api.getLiveEnvironmentData(locationId);
+        const data =
+          await api.getLiveEnvironmentData(locationId);
 
         setWeather(data);
       } catch (err) {
-        console.error("Failed to load live weather:", err);
+        console.error(
+          "Failed to load live weather:",
+          err
+        );
 
-        setError("Unable to load live weather data");
+        setError(
+          "Unable to load live weather data"
+        );
       }
     }
 
     loadWeather();
 
-    const interval = setInterval(loadWeather, 60000);
+    const interval = setInterval(
+      loadWeather,
+      60000
+    );
 
     return () => clearInterval(interval);
   }, [locationId]);
@@ -70,7 +79,7 @@ function LiveWeather({ locationId = 1 }) {
       </p>
 
       <small>
-        Source: {weather.source || "Open-Meteo"}
+        Source: {weather.source}
       </small>
     </div>
   );

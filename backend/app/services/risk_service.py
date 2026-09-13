@@ -9,8 +9,6 @@ from app.database.models import (
 )
 
 from app.services import alert_service
-from app.services.ml_service import predict_ml_risk
-from app.services.vegetation_service import get_vegetation_index
 
 
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
@@ -36,10 +34,7 @@ def get_risk(risk_id: int, db: Session):
     )
 
 
-def get_location_risks(
-    location_id: int,
-    db: Session,
-):
+def get_location_risks(location_id: int, db: Session):
     return (
         db.query(RiskAssessment)
         .filter(
@@ -69,23 +64,13 @@ def get_risk_overview(db: Session):
 
 def get_risk_locations(db: Session):
 
-    risks = (
+    return (
         db.query(RiskAssessment)
         .order_by(
-            RiskAssessment.location_id.asc(),
-            RiskAssessment.timestamp.desc(),
+            RiskAssessment.timestamp.desc()
         )
         .all()
     )
-
-    latest_by_location = {}
-
-    for risk in risks:
-
-        if risk.location_id not in latest_by_location:
-            latest_by_location[risk.location_id] = risk
-
-    return list(latest_by_location.values())
 
 
 def get_risk_location(
@@ -325,15 +310,10 @@ def calculate_risk_score(
     rainfall_24h,
     rainfall_72h,
     soil_moisture,
-    slope=30.0,
-    elevation=1000.0,
-    vegetation_index=0.5,
-    distance_to_road=1000.0,
-    distance_to_river=1000.0,
 ):
 
     # -----------------------------------------------------
-    # RULE BASED SCORE
+    # RAINFALL 24H SCORE
     # -----------------------------------------------------
 
     rainfall_24h_score = min(
@@ -341,20 +321,36 @@ def calculate_risk_score(
         100,
     )
 
+    # -----------------------------------------------------
+    # RAINFALL 72H SCORE
+    # -----------------------------------------------------
+
     rainfall_72h_score = min(
         rainfall_72h / 250 * 100,
         100,
     )
+
+    # -----------------------------------------------------
+    # SOIL MOISTURE SCORE
+    # -----------------------------------------------------
 
     soil_score = min(
         soil_moisture,
         100,
     )
 
+    # -----------------------------------------------------
+    # RULE BASED SCORE
+    # -----------------------------------------------------
+
     rule_score = (
+
         rainfall_24h_score * 0.35
+
         + rainfall_72h_score * 0.40
+
         + soil_score * 0.25
+
     )
 
     rule_score = max(
@@ -366,29 +362,27 @@ def calculate_risk_score(
     )
 
     # -----------------------------------------------------
-    # MACHINE LEARNING SCORE
+    # ML SCORE
     # -----------------------------------------------------
+    #
+    # Currently using environmental score as
+    # temporary ML component.
+    #
+    # Later replace this with trained ML model.
+    #
 
-    ml_score = predict_ml_risk(
-        {
-            "rainfall_24h": rainfall_24h,
-            "rainfall_72h": rainfall_72h,
-            "slope": slope,
-            "elevation": elevation,
-            "soil_moisture": soil_moisture,
-            "vegetation_index": vegetation_index,
-            "distance_to_road": distance_to_road,
-            "distance_to_river": distance_to_river,
-        }
-    )
+    ml_score = rule_score
 
     # -----------------------------------------------------
     # FINAL RISK SCORE
     # -----------------------------------------------------
 
     risk_score = (
+
         rule_score * 0.60
+
         + ml_score * 0.40
+
     )
 
     risk_score = round(
@@ -484,40 +478,23 @@ def predict_risk_by_coordinates(
     )
 
     # -----------------------------------------------------
-    # GET REAL VEGETATION INDEX / NDVI
+    # CALCULATE RISK
     # -----------------------------------------------------
 
-    vegetation_index = get_vegetation_index(
-        latitude=latitude,
-        longitude=longitude,
+    risk = calculate_risk_score(
+
+        rainfall_24h=environmental[
+            "rainfall_24h"
+        ],
+
+        rainfall_72h=environmental[
+            "rainfall_72h"
+        ],
+
+        soil_moisture=environmental[
+            "soil_moisture"
+        ],
     )
-
-    # -----------------------------------------------------
-    # NDVI FALLBACK
-    # -----------------------------------------------------
-    #
-    # If Sentinel-2 imagery is temporarily unavailable,
-    # keep the existing fallback value so the complete
-    # risk prediction pipeline does not fail.
-    #
-    # When real NDVI is available, it is always used.
-    # -----------------------------------------------------
-
-    if vegetation_index is None:
-
-        vegetation_index = 0.5
-
-        print(
-            "Real NDVI unavailable. "
-            "Using fallback vegetation index: 0.5"
-        )
-
-    else:
-
-        print(
-            "Real NDVI used for risk prediction:",
-            vegetation_index,
-        )
 
     # -----------------------------------------------------
     # FIND OR CREATE LOCATION
@@ -550,50 +527,11 @@ def predict_risk_by_coordinates(
 
             longitude=longitude,
 
-            elevation=weather_data.get(
-                "elevation"
-            ),
         )
 
         db.add(location)
         db.commit()
         db.refresh(location)
-
-    # -----------------------------------------------------
-    # CALCULATE RISK
-    # -----------------------------------------------------
-
-    risk = calculate_risk_score(
-
-        rainfall_24h=environmental[
-            "rainfall_24h"
-        ],
-
-        rainfall_72h=environmental[
-            "rainfall_72h"
-        ],
-
-        soil_moisture=environmental[
-            "soil_moisture"
-        ],
-
-        slope=location.slope or 30.0,
-
-        elevation=location.elevation or 1000.0,
-
-        # REAL NDVI IS NOW USED HERE
-        vegetation_index=vegetation_index,
-
-        distance_to_road=(
-            location.distance_to_road
-            or 1000.0
-        ),
-
-        distance_to_river=(
-            location.distance_to_river
-            or 1000.0
-        ),
-    )
 
     # -----------------------------------------------------
     # SAVE RISK ASSESSMENT
@@ -642,10 +580,7 @@ def predict_risk_by_coordinates(
 
         "longitude": longitude,
 
-        "environmental": {
-            **environmental,
-            "vegetation_index": vegetation_index,
-        },
+        "environmental": environmental,
 
         "risk": risk,
 
@@ -672,10 +607,8 @@ def predict_risk_by_coordinates(
             else None
         ),
 
-        "source": (
-            "Open-Meteo + "
-            "Sentinel-2 NDVI"
-        ),
+        "source": "Open-Meteo",
+
     }
 
 

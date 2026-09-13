@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   MapContainer,
@@ -7,8 +7,6 @@ import {
   Popup,
   useMap,
 } from "react-leaflet";
-
-import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
 
@@ -33,153 +31,12 @@ function MapSearch({ searchLocation }) {
           Number(searchLocation.latitude),
           Number(searchLocation.longitude),
         ],
-        10,
-        {
-          animate: true,
-        }
+        10
       );
     }
   }, [searchLocation, map]);
 
   return null;
-}
-
-
-// ============================================================
-// RISK HELPERS
-// ============================================================
-
-function getRiskLevel(risk) {
-  const value = String(
-    risk?.risk?.risk_level ||
-      risk?.risk_level ||
-      risk?.risk ||
-      risk?.level ||
-      ""
-  ).toUpperCase();
-
-  if (value.includes("CRITICAL")) {
-    return "CRITICAL";
-  }
-
-  if (value.includes("HIGH")) {
-    return "HIGH";
-  }
-
-  if (
-    value.includes("MODERATE") ||
-    value.includes("MEDIUM")
-  ) {
-    return "MODERATE";
-  }
-
-  if (value.includes("LOW")) {
-    return "LOW";
-  }
-
-  return "UNKNOWN";
-}
-
-
-function getRiskScore(risk) {
-  return (
-    risk?.risk?.risk_score ??
-    risk?.risk_score ??
-    null
-  );
-}
-
-
-function getRiskClass(risk) {
-  const level = getRiskLevel(risk);
-
-  if (level === "CRITICAL") {
-    return "critical";
-  }
-
-  if (level === "HIGH") {
-    return "high";
-  }
-
-  if (level === "MODERATE") {
-    return "moderate";
-  }
-
-  if (level === "LOW") {
-    return "low";
-  }
-
-  return "unknown";
-}
-
-
-function getRiskColor(risk) {
-  const level = getRiskLevel(risk);
-
-  if (level === "CRITICAL") {
-    return "#ff3158";
-  }
-
-  if (level === "HIGH") {
-    return "#ff7a25";
-  }
-
-  if (level === "MODERATE") {
-    return "#ffb52e";
-  }
-
-  if (level === "LOW") {
-    return "#20e6a0";
-  }
-
-  return "#60a5fa";
-}
-
-
-// ============================================================
-// CUSTOM MAP MARKER
-// ============================================================
-
-function createRiskIcon(risk, selected = false) {
-  const color = getRiskColor(risk);
-
-  const size = selected ? 25 : 20;
-
-  const glow = selected
-    ? `0 0 0 5px ${color}22, 0 0 22px ${color}aa`
-    : `0 0 15px ${color}88`;
-
-  return L.divIcon({
-    className: "slopeshield-risk-marker",
-    html: `
-      <div
-        style="
-          width:${size}px;
-          height:${size}px;
-          border-radius:50%;
-          background:${color};
-          border:3px solid rgba(255,255,255,0.92);
-          box-shadow:${glow};
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          position:relative;
-        "
-      >
-        <div
-          style="
-            width:5px;
-            height:5px;
-            border-radius:50%;
-            background:#07101e;
-          "
-        ></div>
-      </div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -size / 2],
-  });
 }
 
 
@@ -199,7 +56,7 @@ function RiskMap() {
 
 
   // ----------------------------------------------------------
-  // SEARCHED LOCATIONS
+  // WORLDWIDE SEARCHED LOCATIONS
   // ----------------------------------------------------------
 
   const [searchedLocations, setSearchedLocations] = useState([]);
@@ -209,11 +66,9 @@ function RiskMap() {
   // SELECTED LOCATION
   // ----------------------------------------------------------
 
-  const [selectedLocation, setSelectedLocation] =
-    useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
-  const [selectedRisk, setSelectedRisk] =
-    useState(null);
+  const [selectedRisk, setSelectedRisk] = useState(null);
 
 
   // ----------------------------------------------------------
@@ -247,21 +102,16 @@ function RiskMap() {
 
 
   // ==========================================================
-  // LOAD LIVE DATABASE DATA
+  // LOAD DATABASE DATA
   // ==========================================================
 
   useEffect(() => {
 
-    let cancelled = false;
-
-    async function loadMapData(showLoading = false) {
+    async function loadMapData() {
 
       try {
 
-        if (showLoading) {
-          setLoading(true);
-        }
-
+        setLoading(true);
         setError(null);
 
         const [
@@ -271,10 +121,6 @@ function RiskMap() {
           api.getLocations(),
           api.getRiskLocations(),
         ]);
-
-        if (cancelled) {
-          return;
-        }
 
         setLocations(
           Array.isArray(locationData)
@@ -295,47 +141,28 @@ function RiskMap() {
           err
         );
 
-        if (!cancelled) {
-          setError(
-            "Unable to load live database risk data."
-          );
-        }
+        setError(
+          "Unable to load database risk data."
+        );
 
       } finally {
 
-        if (!cancelled) {
-          setLoading(false);
-        }
+        setLoading(false);
 
       }
+
     }
 
-
-    loadMapData(true);
-
-
-    const refreshInterval = setInterval(
-      () => loadMapData(false),
-      60000
-    );
-
-
-    return () => {
-
-      cancelled = true;
-
-      clearInterval(refreshInterval);
-
-    };
+    loadMapData();
 
   }, []);
 
 
   // ==========================================================
-  // FIND DATABASE RISK
+  // GET DATABASE RISK
   // ==========================================================
 
-  function getRiskForLocation(locationId) {
+  const getRiskForLocation = (locationId) => {
 
     return riskLocations.find(
       (risk) =>
@@ -344,90 +171,100 @@ function RiskMap() {
         Number(risk.locationId) ===
           Number(locationId)
     );
-  }
+
+  };
 
 
   // ==========================================================
-  // RISK COUNTS
+  // GET RISK CLASS
   // ==========================================================
 
-  const riskDistribution = useMemo(() => {
+  const getRiskClass = (risk) => {
 
-    const counts = {
-      critical: 0,
-      high: 0,
-      moderate: 0,
-      low: 0,
-      unknown: 0,
-    };
-
-
-    riskLocations.forEach((risk) => {
-
-      const level =
-        getRiskLevel(risk).toLowerCase();
-
-      if (counts[level] !== undefined) {
-        counts[level] += 1;
-      } else {
-        counts.unknown += 1;
-      }
-
-    });
+    const value = String(
+      risk?.risk_level ||
+      risk?.risk?.risk_level ||
+      risk?.risk ||
+      risk?.level ||
+      ""
+    ).toLowerCase();
 
 
-    searchedLocations.forEach((location) => {
-
-      const level =
-        getRiskLevel(location.riskData).toLowerCase();
-
-      if (counts[level] !== undefined) {
-        counts[level] += 1;
-      }
-
-    });
+    if (
+      value.includes("critical") ||
+      value.includes("high")
+    ) {
+      return "high";
+    }
 
 
-    return counts;
+    if (
+      value.includes("moderate") ||
+      value.includes("medium")
+    ) {
+      return "moderate";
+    }
 
-  }, [
-    riskLocations,
-    searchedLocations,
-  ]);
+
+    return "low";
+
+  };
 
 
   // ==========================================================
-  // TOGGLE MAP LAYER
+  // GET RISK LEVEL
   // ==========================================================
 
-  function toggleLayer(layer) {
+  const getRiskLevel = (risk) => {
 
-    setLayers((previous) => ({
-      ...previous,
-      [layer]: !previous[layer],
-    }));
+    return (
+      risk?.risk?.risk_level ||
+      risk?.risk_level ||
+      risk?.risk ||
+      risk?.level ||
+      "UNKNOWN"
+    );
 
-  }
+  };
+
+
+  // ==========================================================
+  // GET RISK SCORE
+  // ==========================================================
+
+  const getRiskScore = (risk) => {
+
+    return (
+      risk?.risk?.risk_score ??
+      risk?.risk_score ??
+      null
+    );
+
+  };
 
 
   // ==========================================================
   // MAP CENTER
   // ==========================================================
 
-  const mapCenter = useMemo(() => {
+  const getMapCenter = () => {
 
+    // Selected worldwide location
     if (
       selectedLocation &&
       selectedLocation.latitude !== undefined &&
       selectedLocation.longitude !== undefined
     ) {
+
       return [
         Number(selectedLocation.latitude),
         Number(selectedLocation.longitude),
       ];
+
     }
 
 
+    // Database location
     if (locations.length > 0) {
 
       const first = locations[0];
@@ -436,45 +273,110 @@ function RiskMap() {
         first.latitude !== undefined &&
         first.longitude !== undefined
       ) {
+
         return [
           Number(first.latitude),
           Number(first.longitude),
         ];
+
       }
 
     }
 
 
-    return [23.5, 92.5];
+    // World center
+    return [20, 0];
 
-  }, [
-    selectedLocation,
-    locations,
-  ]);
+  };
+
+
+  const center = getMapCenter();
+
+
+  // ==========================================================
+  // WORLDWIDE RISK DISTRIBUTION
+  // ==========================================================
+  //
+  // IMPORTANT:
+  // Database risks + searched live risks
+  //
+  // ==========================================================
+
+  const searchedRiskClasses =
+    searchedLocations
+      .map((location) => location.riskClass)
+      .filter(Boolean);
+
+
+  const databaseRiskClasses =
+    riskLocations.map((risk) =>
+      getRiskClass(risk)
+    );
+
+
+  const allRiskClasses = [
+    ...databaseRiskClasses,
+    ...searchedRiskClasses,
+  ];
+
+
+  const highRiskCount =
+    allRiskClasses.filter(
+      (risk) => risk === "high"
+    ).length;
+
+
+  const moderateRiskCount =
+    allRiskClasses.filter(
+      (risk) => risk === "moderate"
+    ).length;
+
+
+  const lowRiskCount =
+    allRiskClasses.filter(
+      (risk) => risk === "low"
+    ).length;
+
+
+  // ==========================================================
+  // TOGGLE LAYER
+  // ==========================================================
+
+  const toggleLayer = (layer) => {
+
+    setLayers((previous) => ({
+      ...previous,
+      [layer]: !previous[layer],
+    }));
+
+  };
 
 
   // ==========================================================
   // WORLDWIDE SEARCH
   // ==========================================================
 
-  async function handleSearch() {
+  const handleSearch = async () => {
 
     const query = search.trim();
 
-    if (!query || searching) {
+
+    if (!query) {
+
       return;
+
     }
 
 
     try {
 
       setSearching(true);
-
       setError(null);
 
 
       // ------------------------------------------------------
-      // GEOCODING
+      // STEP 1
+      // LOCATION NAME → LATITUDE / LONGITUDE
       // ------------------------------------------------------
 
       const geocoded =
@@ -491,8 +393,13 @@ function RiskMap() {
         );
 
         return;
+
       }
 
+
+      // ------------------------------------------------------
+      // FIRST SEARCH RESULT
+      // ------------------------------------------------------
 
       const place = geocoded[0];
 
@@ -514,11 +421,12 @@ function RiskMap() {
         );
 
         return;
+
       }
 
 
       // ------------------------------------------------------
-      // SEARCHED LOCATION OBJECT
+      // LOCATION INFORMATION
       // ------------------------------------------------------
 
       const searchedLocation = {
@@ -546,7 +454,6 @@ function RiskMap() {
           "",
 
         latitude,
-
         longitude,
 
         elevation:
@@ -562,7 +469,8 @@ function RiskMap() {
 
 
       // ------------------------------------------------------
-      // LIVE AI RISK
+      // STEP 2
+      // LIVE RISK BY COORDINATES
       // ------------------------------------------------------
 
       const riskData =
@@ -572,12 +480,20 @@ function RiskMap() {
         );
 
 
-      searchedLocation.riskData =
-        riskData;
+      // ------------------------------------------------------
+      // RISK CLASS
+      // ------------------------------------------------------
+
+      const riskClass =
+        getRiskClass(riskData);
 
 
       searchedLocation.riskClass =
-        getRiskClass(riskData);
+        riskClass;
+
+
+      searchedLocation.riskData =
+        riskData;
 
 
       // ------------------------------------------------------
@@ -593,11 +509,11 @@ function RiskMap() {
                 !(
                   Math.abs(
                     Number(item.latitude) -
-                      latitude
+                    latitude
                   ) < 0.0001 &&
                   Math.abs(
                     Number(item.longitude) -
-                      longitude
+                    longitude
                   ) < 0.0001
                 )
             );
@@ -606,24 +522,33 @@ function RiskMap() {
           return [
             searchedLocation,
             ...filtered,
-          ].slice(0, 5);
+          ];
 
         }
       );
 
 
       // ------------------------------------------------------
-      // SELECT
+      // SELECT LOCATION
       // ------------------------------------------------------
 
       setSelectedLocation(
         searchedLocation
       );
 
+
+      // ------------------------------------------------------
+      // SELECT RISK
+      // ------------------------------------------------------
+
       setSelectedRisk(
         riskData
       );
 
+
+      // ------------------------------------------------------
+      // CLEAR SEARCH INPUT
+      // ------------------------------------------------------
 
       setSearch("");
 
@@ -644,168 +569,107 @@ function RiskMap() {
 
     }
 
-  }
+  };
 
 
   // ==========================================================
-  // SEARCH ENTER KEY
+  // ENTER KEY
   // ==========================================================
 
-  function handleSearchKeyDown(event) {
+  const handleSearchKeyDown = (event) => {
 
     if (event.key === "Enter") {
+
       handleSearch();
-    }
-
-  }
-
-
-  // ==========================================================
-  // SELECT SEARCHED LOCATION
-  // ==========================================================
-
-  async function handleSearchedLocationClick(
-    location
-  ) {
-
-    setSelectedLocation(location);
-
-
-    if (location.riskData) {
-
-      setSelectedRisk(
-        location.riskData
-      );
-
-      return;
 
     }
 
-
-    try {
-
-      setSearching(true);
+  };
 
 
-      const riskData =
-        await api.predictRiskByCoordinates(
-          Number(location.latitude),
-          Number(location.longitude)
+  // ==========================================================
+  // SELECT RECENT SEARCH
+  // ==========================================================
+
+  const handleSearchedLocationClick =
+    async (location) => {
+
+      setSelectedLocation(location);
+
+
+      // If risk data is already stored
+      if (location.riskData) {
+
+        setSelectedRisk(
+          location.riskData
+        );
+
+        return;
+
+      }
+
+
+      // Otherwise request fresh live data
+      try {
+
+        setSearching(true);
+
+
+        const riskData =
+          await api.predictRiskByCoordinates(
+            Number(location.latitude),
+            Number(location.longitude)
+          );
+
+
+        setSelectedRisk(
+          riskData
         );
 
 
-      setSelectedRisk(
-        riskData
-      );
+      } catch (err) {
 
+        console.error(
+          "Recent location risk error:",
+          err
+        );
 
-      setSearchedLocations(
-        (previous) =>
-          previous.map(
-            (item) =>
-              item.id === location.id
-                ? {
-                    ...item,
-                    riskData,
-                    riskClass:
-                      getRiskClass(
-                        riskData
-                      ),
-                  }
-                : item
-          )
-      );
+        alert(
+          "Unable to refresh live risk data."
+        );
 
-    } catch (err) {
+      } finally {
 
-      console.error(
-        "Recent location risk error:",
-        err
-      );
+        setSearching(false);
 
-      alert(
-        "Unable to refresh live risk data."
-      );
+      }
 
-    } finally {
-
-      setSearching(false);
-
-    }
-
-  }
+    };
 
 
   // ==========================================================
   // SELECT DATABASE LOCATION
   // ==========================================================
 
-  async function handleDatabaseLocationClick(
-    location
-  ) {
+  const handleDatabaseLocationClick =
+    (location) => {
 
-    setSelectedLocation(location);
-
-
-    const existingRisk =
-      getRiskForLocation(
-        location.id
+      setSelectedLocation(
+        location
       );
 
 
-    if (existingRisk) {
-
-      setSelectedRisk(
-        existingRisk
-      );
-
-      return;
-
-    }
-
-
-    try {
-
-      setSearching(true);
-
-
-      const riskData =
-        await api.predictRiskByCoordinates(
-          Number(location.latitude),
-          Number(location.longitude)
+      const risk =
+        getRiskForLocation(
+          location.id
         );
 
 
       setSelectedRisk(
-        riskData
+        risk || null
       );
 
-    } catch (err) {
-
-      console.error(
-        "Database location risk error:",
-        err
-      );
-
-      alert(
-        "Unable to load live risk data."
-      );
-
-    } finally {
-
-      setSearching(false);
-
-    }
-
-  }
-
-
-  // ==========================================================
-  // SELECTED RISK ENVIRONMENT
-  // ==========================================================
-
-  const selectedEnvironmental =
-    selectedRisk?.environmental || {};
+    };
 
 
   // ==========================================================
@@ -816,9 +680,10 @@ function RiskMap() {
 
     <div className="page-container">
 
-      {/* ====================================================
+
+      {/* ======================================================
           HEADER
-      ==================================================== */}
+      ====================================================== */}
 
       <div className="page-header">
 
@@ -833,219 +698,315 @@ function RiskMap() {
           </h1>
 
           <p className="page-subtitle">
-            Live geographic monitoring of environmental
-            conditions and AI-generated landslide risk.
+            Worldwide geographic visualization
+            of real-time environmental conditions
+            and landslide risk.
           </p>
-
-        </div>
-
-
-        <div className="live-status">
-
-          <span className="live-dot"></span>
-
-          LIVE RISK MONITORING
 
         </div>
 
       </div>
 
 
-      {/* ====================================================
+      {/* ======================================================
           SEARCH
-      ==================================================== */}
+      ====================================================== */}
 
-      <div className="dashboard-card risk-map-search">
-
-        <div className="risk-map-search-icon">
-          🔎
-        </div>
+      <div
+        className="dashboard-card"
+        style={{
+          marginBottom: "16px",
+          display: "flex",
+          gap: "10px",
+          alignItems: "center",
+        }}
+      >
 
         <input
           type="text"
-          placeholder="Search any city, district or location worldwide..."
+          placeholder="Search any location worldwide..."
           value={search}
           onChange={(event) =>
             setSearch(event.target.value)
           }
-          onKeyDown={handleSearchKeyDown}
+          onKeyDown={
+            handleSearchKeyDown
+          }
+          style={{
+            flex: 1,
+            padding: "12px",
+            borderRadius: "8px",
+            border:
+              "1px solid #ccc",
+            fontSize: "14px",
+          }}
         />
 
+
         <button
-          className="action-button"
           onClick={handleSearch}
           disabled={searching}
+          style={{
+            padding:
+              "12px 20px",
+            borderRadius: "8px",
+            border: "none",
+            cursor:
+              searching
+                ? "not-allowed"
+                : "pointer",
+            fontWeight: "600",
+          }}
         >
+
           {searching
-            ? "Analyzing..."
-            : "Analyze Location"}
+            ? "Checking..."
+            : "Search"}
+
         </button>
 
       </div>
 
 
-      {/* ====================================================
-          SELECTED LIVE ASSESSMENT
-      ==================================================== */}
+      {/* ======================================================
+          LIVE RISK ASSESSMENT
+      ====================================================== */}
 
       {selectedRisk && (
 
-        <div className="dashboard-card risk-map-assessment">
+        <div
+          className="dashboard-card"
+          style={{
+            marginBottom: "16px",
+          }}
+        >
 
-          <div className="card-header">
+          <h2>
+            Live Risk Assessment
+          </h2>
+
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(150px,1fr))",
+              gap: "16px",
+              marginTop: "15px",
+            }}
+          >
+
+            {/* LOCATION */}
 
             <div>
 
-              <p className="page-eyebrow">
-                LIVE AI ASSESSMENT
-              </p>
+              <strong>
+                Location
+              </strong>
 
-              <h2>
-                {selectedLocation?.name ||
-                  "Selected Location"}
-              </h2>
+              <br />
 
-              <p>
-                Real-time environmental intelligence
-                and landslide risk calculation.
-              </p>
+              {selectedLocation?.name ||
+                "Unknown"}
 
             </div>
 
 
-            <span
-              className={`risk-badge ${getRiskClass(
+            {/* COORDINATES */}
+
+            <div>
+
+              <strong>
+                Coordinates
+              </strong>
+
+              <br />
+
+              {selectedRisk.latitude ??
+                selectedLocation?.latitude ??
+                "N/A"}
+
+              ,
+
+              {" "}
+
+              {selectedRisk.longitude ??
+                selectedLocation?.longitude ??
+                "N/A"}
+
+            </div>
+
+
+            {/* RISK SCORE */}
+
+            <div>
+
+              <strong>
+                Risk Score
+              </strong>
+
+              <br />
+
+              {getRiskScore(
                 selectedRisk
-              )}`}
-            >
-              {getRiskLevel(selectedRisk)}
-            </span>
-
-          </div>
-
-
-          <div className="risk-assessment-grid">
-
-            <div className="risk-assessment-score">
-
-              <span>
-                RISK SCORE
-              </span>
-
-              <strong>
-                {getRiskScore(selectedRisk) !== null
-                  ? Number(
-                      getRiskScore(selectedRisk)
-                    ).toFixed(1)
-                  : "--"}
-              </strong>
-
-              <small>
-                / 100
-              </small>
+              ) !== null
+                ? Number(
+                    getRiskScore(
+                      selectedRisk
+                    )
+                  ).toFixed(2)
+                : "N/A"}
 
             </div>
 
 
-            <div className="risk-assessment-item">
+            {/* RISK LEVEL */}
 
-              <span>
+            <div>
+
+              <strong>
+                Risk Level
+              </strong>
+
+              <br />
+
+              <strong>
+
+                {getRiskLevel(
+                  selectedRisk
+                )}
+
+              </strong>
+
+            </div>
+
+
+            {/* RAINFALL 24 */}
+
+            <div>
+
+              <strong>
                 Rainfall 24h
-              </span>
-
-              <strong>
-                {selectedEnvironmental.rainfall_24h ??
-                  "--"}{" "}
-                mm
               </strong>
+
+              <br />
+
+              {selectedRisk.environmental
+                ?.rainfall_24h ??
+                "N/A"}
+
+              {" "}mm
 
             </div>
 
 
-            <div className="risk-assessment-item">
+            {/* RAINFALL 72 */}
 
-              <span>
+            <div>
+
+              <strong>
                 Rainfall 72h
-              </span>
-
-              <strong>
-                {selectedEnvironmental.rainfall_72h ??
-                  "--"}{" "}
-                mm
               </strong>
+
+              <br />
+
+              {selectedRisk.environmental
+                ?.rainfall_72h ??
+                "N/A"}
+
+              {" "}mm
 
             </div>
 
 
-            <div className="risk-assessment-item">
+            {/* SOIL MOISTURE */}
 
-              <span>
+            <div>
+
+              <strong>
                 Soil Moisture
-              </span>
-
-              <strong>
-                {selectedEnvironmental.soil_moisture ??
-                  "--"}{" "}
-                %
               </strong>
+
+              <br />
+
+              {selectedRisk.environmental
+                ?.soil_moisture ??
+                "N/A"}
+
+              {" "}%
 
             </div>
 
 
-            <div className="risk-assessment-item">
+            {/* TEMPERATURE */}
 
-              <span>
-                NDVI
-              </span>
+            <div>
 
               <strong>
-                {selectedEnvironmental.vegetation_index ??
-                  "--"}
-              </strong>
-
-            </div>
-
-
-            <div className="risk-assessment-item">
-
-              <span>
                 Temperature
-              </span>
-
-              <strong>
-                {selectedEnvironmental.temperature ??
-                  "--"}{" "}
-                °C
               </strong>
+
+              <br />
+
+              {selectedRisk.environmental
+                ?.temperature ??
+                "N/A"}
+
+              {" "}°C
 
             </div>
 
 
-            <div className="risk-assessment-item">
+            {/* HUMIDITY */}
 
-              <span>
+            <div>
+
+              <strong>
                 Humidity
-              </span>
-
-              <strong>
-                {selectedEnvironmental.humidity ??
-                  "--"}{" "}
-                %
               </strong>
+
+              <br />
+
+              {selectedRisk.environmental
+                ?.humidity ??
+                "N/A"}
+
+              {" "}%
 
             </div>
 
 
-            <div className="risk-assessment-source">
+            {/* CURRENT RAIN */}
 
-              <span>
-                DATA SOURCE
-              </span>
+            <div>
 
               <strong>
-                {selectedRisk.source ||
-                  "Open-Meteo + Sentinel-2 NDVI"}
+                Current Rain
               </strong>
+
+              <br />
+
+              {selectedRisk.environmental
+                ?.current_rain ??
+                "N/A"}
+
+              {" "}mm
+
+            </div>
+
+
+            {/* SOURCE */}
+
+            <div>
+
+              <strong>
+                Data Source
+              </strong>
+
+              <br />
+
+              {selectedRisk.source ||
+                "Open-Meteo"}
 
             </div>
 
@@ -1056,41 +1017,62 @@ function RiskMap() {
       )}
 
 
-      {/* ====================================================
-          MAIN MAP LAYOUT
-      ==================================================== */}
+      {/* ======================================================
+          MAIN LAYOUT
+      ====================================================== */}
 
       <div className="risk-map-layout">
 
 
-        {/* ==================================================
+        {/* ====================================================
             MAP
-        ================================================== */}
+        ==================================================== */}
 
-        <div className="dashboard-card risk-map-card">
+        <div
+          className="dashboard-card"
+          style={{
+            padding: 0,
+            overflow: "hidden",
+            minHeight: "500px",
+            position: "relative",
+          }}
+        >
+
+
+          {/* LOADING */}
 
           {loading && (
 
-            <div className="map-status-overlay">
+            <div
+              style={{
+                padding: "15px",
+                position: "absolute",
+                zIndex: 1000,
+                background: "white",
+              }}
+            >
 
-              <div className="loading-pulse"></div>
-
-              <span>
-                Loading live risk network...
-              </span>
+              Loading map data...
 
             </div>
 
           )}
 
 
+          {/* ERROR */}
+
           {error && (
 
-            <div className="map-status-overlay map-error">
+            <div
+              style={{
+                padding: "15px",
+                position: "absolute",
+                zIndex: 1000,
+                background: "white",
+              }}
+            >
 
-              <span>
-                {error}
-              </span>
+              {error}
 
             </div>
 
@@ -1098,20 +1080,29 @@ function RiskMap() {
 
 
           <MapContainer
-            center={mapCenter}
-            zoom={6}
+            center={center}
+            zoom={3}
             scrollWheelZoom={true}
             style={{
-              height: "540px",
+              height: "500px",
               width: "100%",
             }}
           >
+
+
+            {/* =================================================
+                OPEN STREET MAP
+            ================================================= */}
 
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
+
+            {/* =================================================
+                MOVE MAP
+            ================================================= */}
 
             <MapSearch
               searchLocation={
@@ -1120,274 +1111,111 @@ function RiskMap() {
             />
 
 
-            {/* ================================================
-                DATABASE RISK MARKERS
-            ================================================ */}
+            {/* =================================================
+                DATABASE MARKERS
+            ================================================= */}
 
             {layers.risk &&
-              locations.map((location) => {
 
-                if (
-                  location.latitude === undefined ||
-                  location.longitude === undefined
-                ) {
-                  return null;
-                }
-
-
-                const risk =
-                  getRiskForLocation(
-                    location.id
-                  );
-
-
-                const isSelected =
-                  selectedLocation?.id ===
-                  location.id;
-
-
-                return (
-
-                  <Marker
-                    key={`database-${location.id}`}
-                    position={[
-                      Number(location.latitude),
-                      Number(location.longitude),
-                    ]}
-                    icon={createRiskIcon(
-                      risk,
-                      isSelected
-                    )}
-                    eventHandlers={{
-                      click: () =>
-                        handleDatabaseLocationClick(
-                          location
-                        ),
-                    }}
-                  >
-
-                    <Popup>
-
-                      <div className="map-popup">
-
-                        <div className="map-popup-title">
-
-                          <strong>
-                            {location.name}
-                          </strong>
-
-                          <span
-                            className={`risk-badge ${getRiskClass(
-                              risk
-                            )}`}
-                          >
-                            {getRiskLevel(risk)}
-                          </span>
-
-                        </div>
-
-
-                        <div className="map-popup-row">
-
-                          <span>
-                            District
-                          </span>
-
-                          <strong>
-                            {location.district ||
-                              "N/A"}
-                          </strong>
-
-                        </div>
-
-
-                        <div className="map-popup-row">
-
-                          <span>
-                            State
-                          </span>
-
-                          <strong>
-                            {location.state ||
-                              "N/A"}
-                          </strong>
-
-                        </div>
-
-
-                        <div className="map-popup-row">
-
-                          <span>
-                            Risk Score
-                          </span>
-
-                          <strong>
-                            {getRiskScore(risk) !== null
-                              ? Number(
-                                  getRiskScore(risk)
-                                ).toFixed(2)
-                              : "--"}
-                          </strong>
-
-                        </div>
-
-
-                        <div className="map-popup-row">
-
-                          <span>
-                            Coordinates
-                          </span>
-
-                          <strong>
-                            {Number(
-                              location.latitude
-                            ).toFixed(4)}
-                            {", "}
-                            {Number(
-                              location.longitude
-                            ).toFixed(4)}
-                          </strong>
-
-                        </div>
-
-                      </div>
-
-                    </Popup>
-
-                  </Marker>
-
-                );
-
-              })}
-
-
-            {/* ================================================
-                SEARCHED LOCATION MARKERS
-            ================================================ */}
-
-            {layers.risk &&
-              searchedLocations.map(
+              locations.map(
                 (location) => {
 
-                  const riskData =
-                    location.riskData;
+                  if (
+                    location.latitude ===
+                      undefined ||
+                    location.longitude ===
+                      undefined
+                  ) {
+
+                    return null;
+
+                  }
 
 
-                  const isSelected =
-                    selectedLocation?.id ===
-                    location.id;
+                  const risk =
+                    getRiskForLocation(
+                      location.id
+                    );
 
 
                   return (
 
                     <Marker
-                      key={location.id}
+                      key={
+                        `database-${location.id}`
+                      }
                       position={[
-                        Number(location.latitude),
-                        Number(location.longitude),
+                        Number(
+                          location.latitude
+                        ),
+                        Number(
+                          location.longitude
+                        ),
                       ]}
-                      icon={createRiskIcon(
-                        riskData,
-                        isSelected
-                      )}
-                      eventHandlers={{
-                        click: () =>
-                          handleSearchedLocationClick(
-                            location
-                          ),
-                      }}
                     >
 
                       <Popup>
 
-                        <div className="map-popup">
+                        <div>
 
-                          <div className="map-popup-title">
+                          <strong>
+                            {location.name}
+                          </strong>
 
-                            <strong>
-                              {location.name}
-                            </strong>
+                          <br />
 
-                            <span
-                              className={`risk-badge ${getRiskClass(
-                                riskData
-                              )}`}
-                            >
-                              {getRiskLevel(
-                                riskData
-                              )}
-                            </span>
+                          District:
+                          {" "}
+                          {location.district ||
+                            "N/A"}
 
-                          </div>
+                          <br />
 
+                          State:
+                          {" "}
+                          {location.state ||
+                            "N/A"}
 
-                          {location.country && (
+                          <br />
 
-                            <div className="map-popup-row">
+                          Coordinates:
+                          {" "}
+                          {location.latitude},
+                          {" "}
+                          {location.longitude}
 
-                              <span>
-                                Country
-                              </span>
+                          <br />
 
-                              <strong>
-                                {location.country}
-                              </strong>
+                          Risk:
+                          {" "}
 
-                            </div>
+                          <strong>
+
+                            {getRiskLevel(
+                              risk
+                            )}
+
+                          </strong>
+
+                          {getRiskScore(
+                            risk
+                          ) !== null && (
+
+                            <>
+                              <br />
+
+                              Risk Score:
+                              {" "}
+
+                              {Number(
+                                getRiskScore(
+                                  risk
+                                )
+                              ).toFixed(2)}
+
+                            </>
 
                           )}
-
-
-                          <div className="map-popup-row">
-
-                            <span>
-                              Risk Score
-                            </span>
-
-                            <strong>
-                              {getRiskScore(
-                                riskData
-                              ) !== null
-                                ? Number(
-                                    getRiskScore(
-                                      riskData
-                                    )
-                                  ).toFixed(2)
-                                : "--"}
-                            </strong>
-
-                          </div>
-
-
-                          <div className="map-popup-row">
-
-                            <span>
-                              Rainfall 24h
-                            </span>
-
-                            <strong>
-                              {riskData?.environmental
-                                ?.rainfall_24h ??
-                                "--"}{" "}
-                              mm
-                            </strong>
-
-                          </div>
-
-
-                          <div className="map-popup-row">
-
-                            <span>
-                              NDVI
-                            </span>
-
-                            <strong>
-                              {riskData?.environmental
-                                ?.vegetation_index ??
-                                "--"}
-                            </strong>
-
-                          </div>
 
                         </div>
 
@@ -1398,139 +1226,252 @@ function RiskMap() {
                   );
 
                 }
-              )}
+              )
+
+            }
+
+
+            {/* =================================================
+                WORLDWIDE SEARCH MARKERS
+            ================================================= */}
+
+            {layers.risk &&
+
+              searchedLocations.map(
+                (location) => {
+
+                  const isSelected =
+                    selectedLocation?.id ===
+                    location.id;
+
+
+                  const riskData =
+                    location.riskData;
+
+
+                  return (
+
+                    <Marker
+                      key={
+                        location.id
+                      }
+                      position={[
+                        Number(
+                          location.latitude
+                        ),
+                        Number(
+                          location.longitude
+                        ),
+                      ]}
+                    >
+
+                      <Popup>
+
+                        <div>
+
+                          <strong>
+                            {location.name}
+                          </strong>
+
+                          <br />
+
+                          {location.district && (
+
+                            <>
+                              City/District:
+                              {" "}
+                              {location.district}
+                              <br />
+                            </>
+
+                          )}
+
+
+                          {location.state && (
+
+                            <>
+                              State:
+                              {" "}
+                              {location.state}
+                              <br />
+                            </>
+
+                          )}
+
+
+                          {location.country && (
+
+                            <>
+                              Country:
+                              {" "}
+                              {location.country}
+                              <br />
+                            </>
+
+                          )}
+
+
+                          Coordinates:
+                          {" "}
+                          {location.latitude},
+                          {" "}
+                          {location.longitude}
+
+                          <br />
+
+                          Live Risk:
+                          {" "}
+
+                          <strong>
+
+                            {getRiskLevel(
+                              riskData
+                            )}
+
+                          </strong>
+
+
+                          {getRiskScore(
+                            riskData
+                          ) !== null && (
+
+                            <>
+                              <br />
+
+                              Risk Score:
+                              {" "}
+
+                              {Number(
+                                getRiskScore(
+                                  riskData
+                                )
+                              ).toFixed(2)}
+
+                            </>
+
+                          )}
+
+
+                          {riskData?.environmental
+                            ?.rainfall_24h !==
+                            undefined && (
+
+                            <>
+                              <br />
+
+                              Rainfall 24h:
+                              {" "}
+
+                              {
+                                riskData
+                                  .environmental
+                                  .rainfall_24h
+                              }
+
+                              {" "}mm
+
+                            </>
+
+                          )}
+
+                        </div>
+
+                      </Popup>
+
+                    </Marker>
+
+                  );
+
+                }
+              )
+
+            }
 
           </MapContainer>
 
         </div>
 
 
-        {/* ==================================================
-            MAP SIDEBAR
-        ================================================== */}
+        {/* ====================================================
+            SIDEBAR
+        ==================================================== */}
 
         <div className="map-sidebar">
 
 
-          {/* ================================================
+          {/* ==================================================
               RISK DISTRIBUTION
-          ================================================ */}
+          ================================================== */}
 
-          <div className="dashboard-card map-panel">
+          <div className="dashboard-card">
 
-            <div className="card-header">
+            <h2>
+              Risk Distribution
+            </h2>
+
+
+            <div className="zone-stat">
 
               <div>
 
-                <h2>
-                  Risk Distribution
-                </h2>
+                <span className="zone-dot high"></span>
 
-                <p>
-                  Live monitoring network
-                </p>
+                High Risk Zone
 
               </div>
+
+              <strong>
+                {highRiskCount}
+              </strong>
 
             </div>
 
 
-            <div className="risk-distribution-list">
+            <div className="zone-stat">
 
+              <div>
 
-              <div className="zone-stat critical-zone">
+                <span className="zone-dot moderate"></span>
 
-                <div>
-
-                  <span className="zone-dot critical"></span>
-
-                  Critical Risk
-
-                </div>
-
-                <strong>
-                  {riskDistribution.critical}
-                </strong>
+                Moderate Risk Zone
 
               </div>
 
+              <strong>
+                {moderateRiskCount}
+              </strong>
 
-              <div className="zone-stat high-zone">
-
-                <div>
-
-                  <span className="zone-dot high"></span>
-
-                  High Risk
-
-                </div>
-
-                <strong>
-                  {riskDistribution.high}
-                </strong>
-
-              </div>
+            </div>
 
 
-              <div className="zone-stat moderate-zone">
+            <div className="zone-stat">
 
-                <div>
+              <div>
 
-                  <span className="zone-dot moderate"></span>
+                <span className="zone-dot low"></span>
 
-                  Moderate Risk
-
-                </div>
-
-                <strong>
-                  {riskDistribution.moderate}
-                </strong>
+                Low Risk Zone
 
               </div>
 
-
-              <div className="zone-stat low-zone">
-
-                <div>
-
-                  <span className="zone-dot low"></span>
-
-                  Low Risk
-
-                </div>
-
-                <strong>
-                  {riskDistribution.low}
-                </strong>
-
-              </div>
+              <strong>
+                {lowRiskCount}
+              </strong>
 
             </div>
 
           </div>
 
 
-          {/* ================================================
+          {/* ==================================================
               MAP LAYERS
-          ================================================ */}
+          ================================================== */}
 
-          <div className="dashboard-card map-panel">
+          <div className="dashboard-card">
 
-            <div className="card-header">
-
-              <div>
-
-                <h2>
-                  Map Layers
-                </h2>
-
-                <p>
-                  Visualization controls
-                </p>
-
-              </div>
-
-            </div>
+            <h2>
+              Map Layers
+            </h2>
 
 
             <div className="layer-list">
@@ -1539,15 +1480,17 @@ function RiskMap() {
 
                 <input
                   type="checkbox"
-                  checked={layers.risk}
+                  checked={
+                    layers.risk
+                  }
                   onChange={() =>
-                    toggleLayer("risk")
+                    toggleLayer(
+                      "risk"
+                    )
                   }
                 />
 
-                <span>
-                  Landslide Risk
-                </span>
+                Landslide Risk
 
               </label>
 
@@ -1556,15 +1499,17 @@ function RiskMap() {
 
                 <input
                   type="checkbox"
-                  checked={layers.rainfall}
+                  checked={
+                    layers.rainfall
+                  }
                   onChange={() =>
-                    toggleLayer("rainfall")
+                    toggleLayer(
+                      "rainfall"
+                    )
                   }
                 />
 
-                <span>
-                  Rainfall Intensity
-                </span>
+                Rainfall Intensity
 
               </label>
 
@@ -1573,15 +1518,17 @@ function RiskMap() {
 
                 <input
                   type="checkbox"
-                  checked={layers.soil}
+                  checked={
+                    layers.soil
+                  }
                   onChange={() =>
-                    toggleLayer("soil")
+                    toggleLayer(
+                      "soil"
+                    )
                   }
                 />
 
-                <span>
-                  Soil Moisture
-                </span>
+                Soil Moisture
 
               </label>
 
@@ -1590,15 +1537,17 @@ function RiskMap() {
 
                 <input
                   type="checkbox"
-                  checked={layers.sensors}
+                  checked={
+                    layers.sensors
+                  }
                   onChange={() =>
-                    toggleLayer("sensors")
+                    toggleLayer(
+                      "sensors"
+                    )
                   }
                 />
 
-                <span>
-                  Sensor Network
-                </span>
+                Sensor Network
 
               </label>
 
@@ -1607,193 +1556,165 @@ function RiskMap() {
           </div>
 
 
-          {/* ================================================
-              SEARCHED LOCATIONS
-          ================================================ */}
+          {/* ==================================================
+              RECENT SEARCHES
+          ================================================== */}
 
           {searchedLocations.length > 0 && (
 
-            <div className="dashboard-card map-panel">
+            <div className="dashboard-card">
 
-              <div className="card-header">
-
-                <div>
-
-                  <h2>
-                    Recent Searches
-                  </h2>
-
-                  <p>
-                    Live analyzed locations
-                  </p>
-
-                </div>
-
-              </div>
+              <h2>
+                Recent Searches
+              </h2>
 
 
-              <div className="recent-search-list">
+              {searchedLocations.map(
+                (location) => (
 
-                {searchedLocations.map(
-                  (location) => (
+                  <div
+                    key={
+                      location.id
+                    }
+                    style={{
+                      padding:
+                        "10px 0",
+                      borderBottom:
+                        "1px solid #eee",
+                      cursor:
+                        "pointer",
+                    }}
+                    onClick={() =>
+                      handleSearchedLocationClick(
+                        location
+                      )
+                    }
+                  >
 
-                    <button
-                      className={`recent-search-item ${
-                        selectedLocation?.id ===
-                        location.id
-                          ? "selected"
-                          : ""
-                      }`}
-                      key={location.id}
-                      onClick={() =>
-                        handleSearchedLocationClick(
-                          location
-                        )
-                      }
-                    >
+                    <strong>
+                      {location.name}
+                    </strong>
 
-                      <span>
+                    <br />
 
-                        <strong>
-                          {location.name}
-                        </strong>
+                    <small>
 
-                        <small>
-                          {location.country ||
-                            location.state ||
-                            "Worldwide"}
-                        </small>
+                      {location.country ||
+                        location.state ||
+                        "Worldwide"}
 
-                      </span>
+                    </small>
 
+                    <br />
 
-                      <span
-                        className={`risk-badge ${getRiskClass(
-                          location.riskData
-                        )}`}
-                      >
-                        {getRiskLevel(
-                          location.riskData
-                        )}
-                      </span>
+                    <small>
 
-                    </button>
+                      Risk:
+                      {" "}
 
-                  )
-                )}
+                      {getRiskLevel(
+                        location.riskData
+                      )}
 
-              </div>
+                    </small>
+
+                  </div>
+
+                )
+              )}
 
             </div>
 
           )}
 
 
-          {/* ================================================
-              MONITORED LOCATIONS
-          ================================================ */}
+          {/* ==================================================
+              DATABASE LOCATIONS
+          ================================================== */}
 
-          <div className="dashboard-card map-panel">
+          <div className="dashboard-card">
 
-            <div className="card-header">
-
-              <div>
-
-                <h2>
-                  Monitored Locations
-                </h2>
-
-                <p>
-                  Database monitoring network
-                </p>
-
-              </div>
-
-            </div>
+            <h2>
+              Monitored Locations
+            </h2>
 
 
             {locations.length === 0 ? (
 
-              <p className="map-empty">
-                No monitored locations available.
+              <p>
+                No database locations available.
               </p>
 
             ) : (
 
-              <div className="database-location-list">
+              locations.map(
+                (location) => {
 
-                {locations.map(
-                  (location) => {
-
-                    const risk =
-                      getRiskForLocation(
-                        location.id
-                      );
-
-
-                    return (
-
-                      <button
-                        className={`database-location-item ${
-                          selectedLocation?.id ===
-                          location.id
-                            ? "selected"
-                            : ""
-                        }`}
-                        key={location.id}
-                        onClick={() =>
-                          handleDatabaseLocationClick(
-                            location
-                          )
-                        }
-                      >
-
-                        <span className="database-location-main">
-
-                          <span
-                            className={`zone-dot ${getRiskClass(
-                              risk
-                            )}`}
-                          ></span>
-
-                          <span>
-
-                            <strong>
-                              {location.name}
-                            </strong>
-
-                            <small>
-                              {location.district ||
-                                ""}
-                              {location.district &&
-                              location.state
-                                ? ", "
-                                : ""}
-                              {location.state ||
-                                ""}
-                            </small>
-
-                          </span>
-
-                        </span>
-
-
-                        <span
-                          className={`risk-badge ${getRiskClass(
-                            risk
-                          )}`}
-                        >
-                          {getRiskLevel(risk)}
-                        </span>
-
-                      </button>
-
+                  const risk =
+                    getRiskForLocation(
+                      location.id
                     );
 
-                  }
-                )}
 
-              </div>
+                  return (
+
+                    <div
+                      key={
+                        location.id
+                      }
+                      style={{
+                        padding:
+                          "10px 0",
+                        borderBottom:
+                          "1px solid #eee",
+                        cursor:
+                          "pointer",
+                      }}
+                      onClick={() =>
+                        handleDatabaseLocationClick(
+                          location
+                        )
+                      }
+                    >
+
+                      <strong>
+                        {location.name}
+                      </strong>
+
+                      <br />
+
+                      <small>
+
+                        {location.district ||
+                          ""}
+                        {location.district &&
+                          location.state
+                          ? ", "
+                          : ""}
+                        {location.state ||
+                          ""}
+
+                      </small>
+
+                      <br />
+
+                      <small>
+
+                        Risk:
+                        {" "}
+
+                        {getRiskLevel(
+                          risk
+                        )}
+
+                      </small>
+
+                    </div>
+
+                  );
+
+                }
+              )
 
             )}
 
