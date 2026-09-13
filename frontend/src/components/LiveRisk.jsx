@@ -6,29 +6,45 @@ function LiveRisk({ locationId = 1 }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadLiveRisk() {
       try {
         const data = await api.getLiveRiskData(locationId);
 
-        setRiskData(data);
-        setError(null);
+        console.log("LIVE RISK API RESPONSE:", data);
+
+        if (!cancelled) {
+          setRiskData(data);
+          setError(null);
+        }
       } catch (err) {
         console.error("Failed to load live risk:", err);
 
-        setError("Unable to load live risk data");
+        if (!cancelled) {
+          setError("Unable to load live risk data");
+        }
       }
     }
 
     loadLiveRisk();
 
-    const interval = setInterval(
-      loadLiveRisk,
-      60000
-    );
+    const interval = setInterval(loadLiveRisk, 60000);
 
     return () => clearInterval(interval);
   }, [locationId]);
 
+  // Loading
+  if (!riskData && !error) {
+    return (
+      <div className="live-risk-card">
+        <h2>Live AI Risk Assessment</h2>
+        <p>Loading AI risk assessment...</p>
+      </div>
+    );
+  }
+
+  // Error
   if (error) {
     return (
       <div className="live-risk-card">
@@ -37,19 +53,35 @@ function LiveRisk({ locationId = 1 }) {
     );
   }
 
-  if (!riskData) {
-    return (
-      <div className="live-risk-card">
-        Loading AI risk assessment...
-      </div>
-    );
-  }
+  // =====================================================
+  // BACKEND RESPONSE MAPPING
+  // =====================================================
 
-  const riskLevelClass =
-    riskData.risk_level.toLowerCase();
+  const riskLevel = riskData.risk_level || "Low";
+  const riskScore = riskData.risk_score ?? 0;
+
+  // IMPORTANT:
+  // Backend sends "environment", not "environmental"
+  const environment = riskData.environment || {};
+
+  const rainfall24h = environment.rainfall_24h ?? 0;
+  const rainfall72h = environment.rainfall_72h ?? 0;
+  const soilMoisture = environment.soil_moisture ?? 0;
+  const vegetationIndex = environment.vegetation_index ?? null;
+
+  const temperature = environment.temperature ?? null;
+  const humidity = environment.humidity ?? null;
+  const windSpeed = environment.wind_speed ?? null;
+
+  const riskLevelClass = riskLevel.toLowerCase();
 
   return (
     <div className="live-risk-card">
+
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <div className="card-header">
         <div>
           <h2>Live AI Risk Assessment</h2>
@@ -66,47 +98,126 @@ function LiveRisk({ locationId = 1 }) {
         </span>
       </div>
 
-      <div className="live-risk-content">
-        <div className="live-risk-score">
-          <h1>{riskData.risk_score}</h1>
+      {/* =================================================
+          RISK SCORE + ENVIRONMENT
+      ================================================= */}
 
-          <span>Risk Score</span>
+      <div className="live-risk-content">
+
+        {/* Risk Score */}
+
+        <div className="live-risk-score">
+          <h1>{riskScore}</h1>
+
+          <span>
+            Risk Score
+          </span>
         </div>
 
+        {/* Environmental Parameters */}
+
         <div className="live-risk-environment">
+
           <div>
-            <span>🌧 Rainfall</span>
+            <span>🌧 Rainfall 24h</span>
+
             <strong>
-              {riskData.environment.rainfall} mm
+              {rainfall24h} mm
             </strong>
           </div>
 
           <div>
-            <span>☔ Precipitation</span>
+            <span>☔ Rainfall 72h</span>
+
             <strong>
-              {riskData.environment.precipitation} mm
+              {rainfall72h} mm
             </strong>
           </div>
 
           <div>
-            <span>💧 Humidity</span>
+            <span>💧 Soil Moisture</span>
+
             <strong>
-              {riskData.environment.humidity} %
+              {soilMoisture} %
             </strong>
           </div>
 
           <div>
-            <span>💨 Wind Speed</span>
+            <span>🌿 NDVI</span>
+
             <strong>
-              {riskData.environment.wind_speed} km/h
+              {vegetationIndex !== null
+                ? vegetationIndex
+                : "--"}
             </strong>
           </div>
+
         </div>
       </div>
 
+      {/* =================================================
+          ADDITIONAL LIVE DATA
+      ================================================= */}
+
+      <div className="live-risk-extra">
+
+        <div>
+          <span>🌡 Temperature</span>
+
+          <strong>
+            {temperature !== null
+              ? `${temperature} °C`
+              : "--"}
+          </strong>
+        </div>
+
+        <div>
+          <span>💦 Humidity</span>
+
+          <strong>
+            {humidity !== null
+              ? `${humidity} %`
+              : "--"}
+          </strong>
+        </div>
+
+        <div>
+          <span>💨 Wind Speed</span>
+
+          <strong>
+            {windSpeed !== null
+              ? `${windSpeed} km/h`
+              : "--"}
+          </strong>
+        </div>
+
+      </div>
+
+      {/* =================================================
+          LOCATION
+      ================================================= */}
+
+      <div className="live-risk-location">
+
+        <span>
+          📍 {riskData.location}
+        </span>
+
+        <span>
+          {riskData.latitude}, {riskData.longitude}
+        </span>
+
+      </div>
+
+      {/* =================================================
+          SOURCE
+      ================================================= */}
+
       <small>
-        {riskData.source}
+        {riskData.source ||
+          "Open-Meteo + Sentinel-2 NDVI"}
       </small>
+
     </div>
   );
 }

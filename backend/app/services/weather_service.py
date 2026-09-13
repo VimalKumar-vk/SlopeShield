@@ -23,16 +23,16 @@ def get_weather_data(latitude: float, longitude: float):
     if not (-180 <= longitude <= 180):
         raise ValueError("Invalid longitude")
 
-
     params = {
         "latitude": latitude,
         "longitude": longitude,
-      
+
         "current": (
             "temperature_2m,"
             "relative_humidity_2m,"
             "rain,"
             "precipitation,"
+            "wind_speed_10m,"
             "soil_moisture_0_to_7cm"
         ),
 
@@ -68,8 +68,6 @@ def get_weather_data_by_coordinates(
     """
     Fetch live environmental data directly
     from latitude and longitude.
-
-    This function does NOT require a database location ID.
     """
 
     weather_data = get_weather_data(
@@ -87,6 +85,35 @@ def get_weather_data_by_coordinates(
     soil_moisture_values = hourly.get(
         "soil_moisture_0_to_7cm",
         [],
+    )
+
+    # -----------------------------------------------------
+    # Current weather
+    # -----------------------------------------------------
+
+    current = weather_data.get(
+        "current",
+        {},
+    )
+
+    temperature = current.get(
+        "temperature_2m"
+    )
+
+    humidity = current.get(
+        "relative_humidity_2m"
+    )
+
+    current_rain = current.get(
+        "rain"
+    )
+
+    current_precipitation = current.get(
+        "precipitation"
+    )
+
+    wind_speed = current.get(
+        "wind_speed_10m"
     )
 
     # -----------------------------------------------------
@@ -121,32 +148,7 @@ def get_weather_data_by_coordinates(
             soil_moisture = latest_soil * 100
 
     # -----------------------------------------------------
-    # Current weather
-    # -----------------------------------------------------
-
-    current = weather_data.get(
-        "current",
-        {},
-    )
-
-    temperature = current.get(
-        "temperature_2m"
-    )
-
-    humidity = current.get(
-        "relative_humidity_2m"
-    )
-
-    current_rain = current.get(
-        "rain"
-    )
-
-    current_precipitation = current.get(
-        "precipitation"
-    )
-
-    # -----------------------------------------------------
-    # Return clean data
+    # Return clean live data
     # -----------------------------------------------------
 
     return {
@@ -158,6 +160,8 @@ def get_weather_data_by_coordinates(
 
         "rain": current_rain,
         "precipitation": current_precipitation,
+
+        "wind_speed": wind_speed,
 
         "rainfall_24h": round(
             rainfall_24h,
@@ -175,9 +179,27 @@ def get_weather_data_by_coordinates(
         ),
     }
 
+# =========================================================
+# 3. LIVE WEATHER FUNCTION
+# =========================================================
+
+def get_live_weather(
+    latitude: float,
+    longitude: float,
+):
+    """
+    Fetch live environmental data
+    for the live weather and risk APIs.
+    """
+
+    return get_weather_data_by_coordinates(
+        latitude,
+        longitude,
+    )
+
 
 # =========================================================
-# 3. CALCULATE RAINFALL
+# 4. CALCULATE RAINFALL
 # =========================================================
 
 def calculate_rainfall(hourly_data):
@@ -187,13 +209,11 @@ def calculate_rainfall(hourly_data):
         [],
     )
 
-    # Last 24 hourly values
     rainfall_24h = sum(
         value or 0
         for value in precipitation[-24:]
     )
 
-    # Last 72 hourly values
     rainfall_72h = sum(
         value or 0
         for value in precipitation[-72:]
@@ -213,7 +233,7 @@ def calculate_rainfall(hourly_data):
 
 
 # =========================================================
-# 4. EXTRACT ENVIRONMENTAL DATA
+# 5. EXTRACT ENVIRONMENTAL DATA
 # =========================================================
 
 def extract_environmental_data(weather_data):
@@ -258,7 +278,7 @@ def extract_environmental_data(weather_data):
 
 
 # =========================================================
-# 5. COLLECT WEATHER FOR DATABASE LOCATION
+# 6. COLLECT WEATHER FOR DATABASE LOCATION
 # =========================================================
 
 def collect_weather_for_location(
@@ -295,16 +315,21 @@ def collect_weather_for_location(
         # Extract environmental data
         # -------------------------------------------------
 
-        environmental = (
-            extract_environmental_data(
-                weather_data
-            )
+        environmental = extract_environmental_data(
+            weather_data
         )
 
-        # Open-Meteo currently does not
-        # provide vegetation index here.
-
-        vegetation_index = None
+        # -------------------------------------------------
+        # Get vegetation index
+        # -------------------------------------------------
+        
+        try:
+            vegetation_index = get_vegetation_index(
+                latitude=location["latitude"],
+                longitude=location["longitude"],
+            )
+        except Exception:
+            vegetation_index = None
 
         # -------------------------------------------------
         # Save reading into database
@@ -341,21 +366,11 @@ def collect_weather_for_location(
         print(
             {
                 "id": reading.id,
-
-                "location_id":
-                    reading.location_id,
-
-                "rainfall_24h":
-                    reading.rainfall_24h,
-
-                "rainfall_72h":
-                    reading.rainfall_72h,
-
-                "soil_moisture":
-                    reading.soil_moisture,
-
-                "vegetation_index":
-                    reading.vegetation_index,
+                "location_id": reading.location_id,
+                "rainfall_24h": reading.rainfall_24h,
+                "rainfall_72h": reading.rainfall_72h,
+                "soil_moisture": reading.soil_moisture,
+                "vegetation_index": reading.vegetation_index,
             }
         )
 
