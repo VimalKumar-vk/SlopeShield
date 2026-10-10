@@ -22,7 +22,7 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #0b1020;
+  /* background: #0b1020; */
   color: #e5e7eb;
 }
 
@@ -45,7 +45,7 @@ input {
       rgba(37, 99, 235, 0.08),
       transparent 30%
     ),
-    #0b1020;
+    /* #0b1020; */
 }
 
 .main-area {
@@ -408,7 +408,7 @@ input {
   color: #94a3b8;
 
   font-size: 13px;
-}
+} 
 
 
 /* =========================================
@@ -443,7 +443,7 @@ input {
     background 0.2s ease,
     border-color 0.2s ease,
     transform 0.2s ease;
-}
+} 
 
 .menu-toggle:hover {
   background: #2563eb;
@@ -460,7 +460,7 @@ input {
 }
 
 
-/* =========================================
+/*=========================================
    HEADER RIGHT
 ========================================= */
 
@@ -472,7 +472,7 @@ input {
   gap: 18px;
 
   flex-shrink: 0;
-}
+} 
 
 .monitoring-status {
   display: flex;
@@ -490,7 +490,7 @@ input {
   letter-spacing: 0.8px;
 
   white-space: nowrap;
-}
+} 
 
 .status-dot {
   width: 8px;
@@ -503,7 +503,7 @@ input {
   box-shadow:
     0 0 10px
     rgba(34, 197, 94, 0.9);
-}
+} 
 
 .notification-button {
   width: 44px;
@@ -586,7 +586,7 @@ input {
   color: #94a3b8;
 
   font-size: 12px;
-}
+} 
 
 
 /* =========================================
@@ -610,8 +610,11 @@ input {
 
 .page-container {
   max-width: 1500px;
-
   margin: 0 auto;
+
+  background-color: #ffffff;
+  color: #111827;
+  min-height: 100vh;
 }
 
 .page-header {
@@ -710,12 +713,12 @@ input {
 
 .stat-card,
 .dashboard-card {
-  background:
+  /* background:
     linear-gradient(
       145deg,
       #182235,
-      #121a29
-    );
+      #121a29 
+    );*/
 
   border:
     1px solid

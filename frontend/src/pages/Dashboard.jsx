@@ -94,7 +94,7 @@ function Dashboard() {
             SLOPESHIELD COMMAND CENTER
           </p>
 
-          <h1>Risk Intelligence Dashboard</h1>
+          <h1 className="text-black">Risk Intelligence Dashboard</h1>
 
           <p className="page-subtitle">
             Real-time AI-based landslide monitoring for North East India.
