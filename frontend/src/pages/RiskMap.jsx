@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
+import WeatherMapbox from "../components/risk-map/WeatherMapbox";
 
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap,
-} from "react-leaflet";
+// import {
+//   MapContainer,
+//   TileLayer,
+//   Marker,
+//   Popup,
+//   useMap,
+// } from "react-leaflet";
 
-import "leaflet/dist/leaflet.css";
+// import "leaflet/dist/leaflet.css";
 
 import { api } from "../services/api";
 
@@ -17,27 +18,27 @@ import { api } from "../services/api";
 // MAP SEARCH / MOVE HELPER
 // ============================================================
 
-function MapSearch({ searchLocation }) {
-  const map = useMap();
+// function MapSearch({ searchLocation }) {
+//   const map = useMap();
 
-  useEffect(() => {
-    if (
-      searchLocation &&
-      searchLocation.latitude !== undefined &&
-      searchLocation.longitude !== undefined
-    ) {
-      map.setView(
-        [
-          Number(searchLocation.latitude),
-          Number(searchLocation.longitude),
-        ],
-        10
-      );
-    }
-  }, [searchLocation, map]);
+//   useEffect(() => {
+//     if (
+//       searchLocation &&
+//       searchLocation.latitude !== undefined &&
+//       searchLocation.longitude !== undefined
+//     ) {
+//       map.setView(
+//         [
+//           Number(searchLocation.latitude),
+//           Number(searchLocation.longitude),
+//         ],
+//         10
+//       );
+//     }
+//   }, [searchLocation, map]);
 
-  return null;
-}
+//   return null;
+// }
 
 
 // ============================================================
@@ -1079,7 +1080,7 @@ function RiskMap() {
           )}
 
 
-          <MapContainer
+          {/* <MapContainer
             center={center}
             zoom={3}
             scrollWheelZoom={true}
@@ -1087,35 +1088,35 @@ function RiskMap() {
               height: "500px",
               width: "100%",
             }}
-          >
+          > */}
 
 
             {/* =================================================
                 OPEN STREET MAP
             ================================================= */}
 
-            <TileLayer
+            {/* <TileLayer
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            /> */}
 
 
             {/* =================================================
                 MOVE MAP
             ================================================= */}
 
-            <MapSearch
+            {/* <MapSearch
               searchLocation={
                 selectedLocation
               }
-            />
+            /> */}
 
 
             {/* =================================================
                 DATABASE MARKERS
             ================================================= */}
 
-            {layers.risk &&
+            {/* {layers.risk &&
 
               locations.map(
                 (location) => {
@@ -1226,16 +1227,16 @@ function RiskMap() {
                   );
 
                 }
-              )
+              ) 
 
-            }
+            }*/}
 
 
             {/* =================================================
                 WORLDWIDE SEARCH MARKERS
             ================================================= */}
 
-            {layers.risk &&
+            {/*{layers.risk &&
 
               searchedLocations.map(
                 (location) => {
@@ -1387,7 +1388,8 @@ function RiskMap() {
 
             }
 
-          </MapContainer>
+          </MapContainer> */}
+          <WeatherMapbox selectedLocation={selectedLocation} />
 
         </div>
 
