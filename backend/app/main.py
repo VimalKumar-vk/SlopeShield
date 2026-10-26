@@ -35,6 +35,14 @@ app.include_router(
 )
 
 
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "SlopeShield Backend"
+    }
+
+
 @app.on_event("startup")
 def startup_event():
     init_db()
